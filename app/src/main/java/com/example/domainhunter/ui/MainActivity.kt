@@ -58,10 +58,10 @@ class MainActivity : AppCompatActivity() {
                 FileOutputStream(file).use { output -> input.copyTo(output) }
             }
             filePath = file.absolutePath
-            binding.tvFileName.text = "📄 $fileName  (${fileSize})"
+            binding.tvFileName.text = "📄 $fileName  ($fileSize)"
             filterAndCountDomains(file)
         } catch (e: Exception) {
-            Toast.makeText(this, "خطأ في قراءة الملف: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "خطأ: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -107,7 +107,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // استعادة آخر قيم
         binding.etTimeout.setText(prefs.getString("timeout", "5000"))
         binding.etDelay.setText(prefs.getString("delay", "500"))
 
@@ -133,35 +132,59 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "اختر ملفاً أولاً!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            // حفظ القيم
             prefs.edit()
                 .putString("timeout", binding.etTimeout.text.toString())
                 .putString("delay", binding.etDelay.text.toString())
                 .apply()
-            startScan()
+
+            if (DomainScanService.isPaused) {
+                // استئناف فوري
+                DomainScanService.isPaused = false
+                startService(Intent(this, DomainScanService::class.java).apply {
+                    action = DomainScanService.ACTION_PAUSE
+                })
+            } else {
+                startScan()
+            }
         }
 
         binding.btnPause.setOnClickListener {
             if (!DomainScanService.isRunning) return@setOnClickListener
+            // إرسال أمر التوقف الفوري
             startService(Intent(this, DomainScanService::class.java).apply {
                 action = DomainScanService.ACTION_PAUSE
             })
         }
 
-        binding.btnStop.setOnClickListener { stopScan() }
+        binding.btnStop.setOnClickListener {
+            stopScan()
+        }
 
         binding.btnClear.setOnClickListener {
-            filePath = null
-            totalDomainsInFile = 0
-            binding.tvFileName.text = "لم يتم اختيار ملف"
-            binding.tvProgress.text = "0 / 0"
-            binding.progressBar.progress = 0
-            binding.tvRegistered.text = "✅ 0"
-            binding.tvFailed.text = "❌ 0"
-            binding.tvIgnored.text = "⏭️ 0"
-            binding.tvEta.text = "--"
-            binding.importProgressBar.isVisible = false
-            binding.tvImportStatus.isVisible = false
+            // مسح سريع على IO thread
+            CoroutineScope(Dispatchers.IO).launch {
+                if (DomainScanService.currentSessionId != -1L) {
+                    AppDatabase.getInstance(this@MainActivity)
+                        .domainDao()
+                        .deleteBySession(DomainScanService.currentSessionId)
+                }
+                withContext(Dispatchers.Main) {
+                    filePath = null
+                    totalDomainsInFile = 0
+                    DomainScanService.currentSessionId = -1L
+                    binding.tvFileName.text = "لم يتم اختيار ملف"
+                    binding.tvProgress.text = "0 / 0"
+                    binding.progressBar.progress = 0
+                    binding.tvRegistered.text = "✅ 0"
+                    binding.tvFailed.text = "❌ 0"
+                    binding.tvIgnored.text = "⏭️ 0"
+                    binding.tvEta.text = "--"
+                    binding.tvResultCount.text = "🔍 0 نطاق محجوز"
+                    binding.importProgressBar.isVisible = false
+                    binding.tvImportStatus.isVisible = false
+                    adapter.submitList(emptyList())
+                }
+            }
         }
 
         binding.etSearch.addTextChangedListener { viewModel.setSearch(it.toString()) }
@@ -200,47 +223,34 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             var totalLines = 0
             var comCount = 0
-
             try {
-                // حساب العدد الكلي أولاً
-                file.bufferedReader().use { reader ->
-                    while (reader.readLine() != null) totalLines++
-                }
-
-                // تصفية .com مع تحديث التقدم
+                file.bufferedReader().use { while (it.readLine() != null) totalLines++ }
                 file.bufferedReader().use { reader ->
                     var lineNum = 0
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
                         lineNum++
                         if (line!!.trim().lowercase().endsWith(".com")) comCount++
-
                         if (lineNum % 500 == 0) {
                             val percent = (lineNum * 100 / totalLines)
                             withContext(Dispatchers.Main) {
                                 binding.importProgressBar.progress = percent
-                                binding.tvImportStatus.text = "⏳ تصفية: $lineNum / $totalLines  ($percent%)"
+                                binding.tvImportStatus.text = "⏳ $lineNum / $totalLines ($percent%)"
                             }
                         }
                     }
                 }
-
                 totalDomainsInFile = comCount
                 withContext(Dispatchers.Main) {
                     binding.importProgressBar.progress = 100
-                    binding.tvImportStatus.text = "✅ إجمالي الملف: $totalLines سطر  |  نطاقات .com: $comCount"
+                    binding.tvImportStatus.text = "✅ إجمالي: $totalLines  |  .com: $comCount"
                     binding.tvProgress.text = "0 / $comCount"
                     binding.progressBar.max = comCount
                     binding.btnStart.isEnabled = comCount > 0
-                    if (comCount == 0) {
-                        Toast.makeText(this@MainActivity, "لا توجد نطاقات .com في الملف!", Toast.LENGTH_LONG).show()
-                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "خطأ: ${e.message}", Toast.LENGTH_LONG).show()
-                    binding.importProgressBar.isVisible = false
-                    binding.tvImportStatus.isVisible = false
                 }
             }
         }
@@ -276,7 +286,7 @@ class MainActivity : AppCompatActivity() {
     private fun startUiUpdate() {
         uiUpdateJob = CoroutineScope(Dispatchers.Main).launch {
             while (true) {
-                if (DomainScanService.isRunning) {
+                if (DomainScanService.isRunning || DomainScanService.isPaused) {
                     val p = DomainScanService.progress
                     val t = DomainScanService.total.takeIf { it > 0 } ?: totalDomainsInFile
                     binding.tvProgress.text = "$p / $t"
@@ -287,16 +297,25 @@ class MainActivity : AppCompatActivity() {
                     binding.tvIgnored.text = "⏭️ ${DomainScanService.ignored}"
                     binding.tvEta.text = DomainScanService.estimatedTimeLeft
                     binding.tvResultCount.text = "🔍 ${DomainScanService.registered} نطاق محجوز"
+
                     if (DomainScanService.currentSessionId != -1L) {
                         viewModel.setSession(DomainScanService.currentSessionId)
                     }
-                    if (!DomainScanService.isRunning) {
+
+                    // تحديث حالة الأزرار
+                    binding.btnPause.text = if (DomainScanService.isPaused) "▶" else "⏸"
+                    binding.btnStart.isEnabled = DomainScanService.isPaused
+                    binding.btnPause.isEnabled = DomainScanService.isRunning || DomainScanService.isPaused
+                    binding.btnStop.isEnabled = DomainScanService.isRunning || DomainScanService.isPaused
+
+                    if (!DomainScanService.isRunning && !DomainScanService.isPaused) {
                         binding.btnStart.isEnabled = true
                         binding.btnPause.isEnabled = false
                         binding.btnStop.isEnabled = false
+                        binding.btnPause.text = "⏸"
                     }
                 }
-                delay(1000)
+                delay(500)
             }
         }
     }

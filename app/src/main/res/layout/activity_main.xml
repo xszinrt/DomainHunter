@@ -46,7 +46,6 @@
                 android:textSize="12sp"
                 android:gravity="center"
                 android:paddingTop="4dp"/>
-            <!-- شريط تقدم الاستيراد -->
             <ProgressBar
                 android:id="@+id/importProgressBar"
                 style="?android:attr/progressBarStyleHorizontal"
@@ -99,7 +98,8 @@
                     android:inputType="number"
                     android:textColor="@color/text_primary"
                     android:background="@android:color/transparent"
-                    android:textSize="16sp"/>
+                    android:textSize="18sp"
+                    android:gravity="center"/>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -119,12 +119,13 @@
                     android:inputType="number"
                     android:textColor="@color/text_primary"
                     android:background="@android:color/transparent"
-                    android:textSize="16sp"/>
+                    android:textSize="18sp"
+                    android:gravity="center"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- أزرار التحكم -->
+    <!-- أزرار التحكم - أيقونات فقط -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -133,36 +134,40 @@
         <Button
             android:id="@+id/btnStart"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
-            android:text="▶️ تشغيل"
+            android:text="▶"
+            android:textSize="24sp"
             android:backgroundTint="@color/success"
             android:layout_marginEnd="4dp"
             android:enabled="false"/>
         <Button
             android:id="@+id/btnPause"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
-            android:text="⏸️ توقف"
+            android:text="⏸"
+            android:textSize="24sp"
             android:backgroundTint="@color/warning"
             android:layout_marginEnd="4dp"
             android:enabled="false"/>
         <Button
             android:id="@+id/btnStop"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
-            android:text="⏹️ إنهاء"
+            android:text="⏹"
+            android:textSize="24sp"
             android:backgroundTint="@color/error"
             android:layout_marginEnd="4dp"
             android:enabled="false"/>
         <Button
             android:id="@+id/btnClear"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
-            android:text="🗑️ مسح"
+            android:text="🗑"
+            android:textSize="24sp"
             android:backgroundTint="@color/bg_card"/>
     </LinearLayout>
 
@@ -188,7 +193,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="0 / 0"
-                    android:textColor="@color/text_primary"/>
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"/>
                 <TextView
                     android:id="@+id/tvEta"
                     android:layout_width="wrap_content"
@@ -282,7 +288,6 @@
         android:paddingStart="8dp"
         android:layout_marginBottom="8dp"/>
 
-    <!-- قائمة النتائج -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
