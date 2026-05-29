@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.example.domainhunter.data.model.Domain
 import com.example.domainhunter.data.model.ScanSession
 
-@Database(entities = [Domain::class, ScanSession::class], version = 1)
+@Database(entities = [Domain::class, ScanSession::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun domainDao(): DomainDao
     abstract fun sessionDao(): SessionDao
