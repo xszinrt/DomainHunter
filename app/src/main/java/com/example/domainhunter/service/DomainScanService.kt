@@ -68,6 +68,7 @@ class DomainScanService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_PAUSE -> {
+                isPaused = !isPaused
                 if (isPaused) {
                     currentCall?.cancel()
                     delayJob?.cancel()
@@ -105,6 +106,7 @@ class DomainScanService : Service() {
             BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
+                    val trimmed = line!!.trim().lowercase()
                     if (trimmed.endsWith(".com")) {
                         domains.add(trimmed.removeSuffix(".com"))
                     }
@@ -119,9 +121,10 @@ class DomainScanService : Service() {
             val startTime = System.currentTimeMillis()
 
             for (i in domains.indices) {
+                if (!isRunning) break
 
-                // انتظار فوري عند التوقف المؤقت
                 while (isPaused && isRunning) { delay(50) }
+                if (!isRunning) break
 
                 val netDomain = "${domains[i]}.net"
                 progress = i + 1
@@ -152,6 +155,7 @@ class DomainScanService : Service() {
 
                     db.domainDao().insert(
                         Domain(
+                            sessionId = currentSession!!.id,
                             domainName = netDomain,
                             registrationDate = rdap?.registrationDate,
                             expirationDate = rdap?.expirationDate,
@@ -163,8 +167,9 @@ class DomainScanService : Service() {
 
                 } catch (e: Exception) {
                     when {
-                        e.message?.contains("Cancel") == true || e.message?.contains("cancel") == true -> {
-                            // تم الإلغاء يدوياً
+                        !isRunning -> break
+                        e.message?.contains("cancel", ignoreCase = true) == true -> {
+                            if (!isRunning) break
                         }
                         e is java.net.ConnectException -> ignored++
                         e is java.net.UnknownHostException -> ignored++
@@ -172,6 +177,7 @@ class DomainScanService : Service() {
                         else -> {
                             db.domainDao().insert(
                                 Domain(
+                                    sessionId = currentSession!!.id,
                                     domainName = netDomain,
                                     registrationDate = null,
                                     expirationDate = null,
@@ -203,7 +209,7 @@ class DomainScanService : Service() {
 
                 updateNotification()
 
-                // تأخير قابل للإلغاء الفوري
+                if (isRunning && !isPaused) {
                     delayJob = scope.launch { delay(delayMs) }
                     delayJob?.join()
                 }
@@ -211,6 +217,7 @@ class DomainScanService : Service() {
 
             if (isRunning) {
                 db.sessionDao().update(
+                    currentSession!!.copy(
                         endTime = System.currentTimeMillis(),
                         status = SessionStatus.COMPLETED
                     )
@@ -272,24 +279,24 @@ class DomainScanService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val percent = if (total > 0) (progress * 100 / total) else 0
-        val statusText = if (isPaused) "⏸ متوقف" else "🔍 جاري الفحص"
-        val pauseLabel = if (isPaused) "▶ استئناف" else "⏸ توقف"
+        val statusText = if (isPaused) "متوقف" else "جاري الفحص"
+        val pauseLabel = if (isPaused) "استئناف" else "توقف"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Domain Hunter — $statusText")
+            .setContentTitle("Domain Hunter - $statusText")
             .setContentText("$progress / $total ($percent%)")
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
-                    "✅ $registered  |  ❌ $failed  |  ⏭ $ignored\n" +
-                    "📊 $progress / $total ($percent%)\n" +
-                    "⏱ $estimatedTimeLeft"
+                    "محجوزة: $registered  |  فاشلة: $failed  |  متجاهلة: $ignored\n" +
+                    "$progress / $total ($percent%)\n" +
+                    "متبقي: $estimatedTimeLeft"
                 )
             )
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setProgress(total, progress, false)
             .setContentIntent(openIntent)
             .addAction(android.R.drawable.ic_media_pause, pauseLabel, pauseIntent)
-            .addAction(android.R.drawable.ic_delete, "⏹ إنهاء", stopIntent)
+            .addAction(android.R.drawable.ic_delete, "انهاء", stopIntent)
             .setOngoing(true)
             .setSilent(true)
             .build()
@@ -307,8 +314,8 @@ class DomainScanService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("✅ اكتمل الفحص!")
-            .setContentText("$registered نطاق محجوز من أصل $total")
+            .setContentTitle("اكتمل الفحص!")
+            .setContentText("$registered نطاق محجوز من اصل $total")
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setContentIntent(openIntent)
             .setAutoCancel(true)
