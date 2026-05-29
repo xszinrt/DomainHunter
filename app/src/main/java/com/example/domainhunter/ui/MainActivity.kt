@@ -149,7 +149,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnPause.setOnClickListener {
-            if (!DomainScanService.isRunning) return@setOnClickListener
             // إرسال أمر التوقف الفوري
             startService(Intent(this, DomainScanService::class.java).apply {
                 action = DomainScanService.ACTION_PAUSE
@@ -230,7 +229,6 @@ class MainActivity : AppCompatActivity() {
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
                         lineNum++
-                        if (line!!.trim().lowercase().endsWith(".com")) comCount++
                         if (lineNum % 500 == 0) {
                             val percent = (lineNum * 100 / totalLines)
                             withContext(Dispatchers.Main) {
@@ -308,7 +306,6 @@ class MainActivity : AppCompatActivity() {
                     binding.btnPause.isEnabled = DomainScanService.isRunning || DomainScanService.isPaused
                     binding.btnStop.isEnabled = DomainScanService.isRunning || DomainScanService.isPaused
 
-                    if (!DomainScanService.isRunning && !DomainScanService.isPaused) {
                         binding.btnStart.isEnabled = true
                         binding.btnPause.isEnabled = false
                         binding.btnStop.isEnabled = false

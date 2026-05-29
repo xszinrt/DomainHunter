@@ -29,6 +29,7 @@ import kotlin.coroutines.suspendCoroutine
 class DomainScanService : Service() {
 
     private var scanJob: Job? = null
+    private var delayJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var db: AppDatabase
     private var currentSession: ScanSession? = null
@@ -67,10 +68,9 @@ class DomainScanService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_PAUSE -> {
-                isPaused = !isPaused
                 if (isPaused) {
-                    // إلغاء الطلب الحالي فوراً
                     currentCall?.cancel()
+                    delayJob?.cancel()
                 }
                 updateNotification()
                 return START_STICKY
@@ -80,7 +80,7 @@ class DomainScanService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
 
         val timeout = intent?.getLongExtra(EXTRA_TIMEOUT, 5000L) ?: 5000L
-        val delay = intent?.getLongExtra(EXTRA_DELAY, 500L) ?: 500L
+        val delayMs = intent?.getLongExtra(EXTRA_DELAY, 500L) ?: 500L
         val filePath = intent?.getStringExtra(EXTRA_FILE_PATH) ?: return START_NOT_STICKY
 
         isRunning = true
@@ -90,7 +90,7 @@ class DomainScanService : Service() {
         failed = 0
         ignored = 0
 
-        startScan(filePath, timeout, delay)
+        startScan(filePath, timeout, delayMs)
         return START_STICKY
     }
 
@@ -101,12 +101,10 @@ class DomainScanService : Service() {
             .build()
 
         scanJob = scope.launch {
-            // قراءة وتصفية الملف
             val domains = mutableListOf<String>()
             BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
-                    val trimmed = line!!.trim().lowercase()
                     if (trimmed.endsWith(".com")) {
                         domains.add(trimmed.removeSuffix(".com"))
                     }
@@ -114,8 +112,6 @@ class DomainScanService : Service() {
             }
 
             total = domains.size
-
-            // إنشاء جلسة
             val id = db.sessionDao().insert(ScanSession(totalDomains = total))
             currentSessionId = id
             currentSession = db.sessionDao().getById(id)
@@ -123,13 +119,9 @@ class DomainScanService : Service() {
             val startTime = System.currentTimeMillis()
 
             for (i in domains.indices) {
-                if (!isRunning) break
 
-                // انتظار عند التوقف المؤقت
-                while (isPaused && isRunning) {
-                    delay(100)
-                }
-                if (!isRunning) break
+                // انتظار فوري عند التوقف المؤقت
+                while (isPaused && isRunning) { delay(50) }
 
                 val netDomain = "${domains[i]}.net"
                 progress = i + 1
@@ -140,7 +132,6 @@ class DomainScanService : Service() {
                         .head()
                         .build()
 
-                    // حفظ الـ Call لإمكانية إلغائه فوراً
                     val call = scanClient.newCall(request)
                     currentCall = call
 
@@ -156,13 +147,11 @@ class DomainScanService : Service() {
                     }
                     response.close()
 
-                    // النطاق محجوز
                     val rdap = withContext(Dispatchers.IO) { RdapFetcher.fetch(netDomain) }
                     val expiring = rdap?.expirationDate?.let { isExpiringSoon(it) } ?: false
 
                     db.domainDao().insert(
                         Domain(
-                            sessionId = currentSession!!.id,
                             domainName = netDomain,
                             registrationDate = rdap?.registrationDate,
                             expirationDate = rdap?.expirationDate,
@@ -174,17 +163,15 @@ class DomainScanService : Service() {
 
                 } catch (e: Exception) {
                     when {
+                        e.message?.contains("Cancel") == true || e.message?.contains("cancel") == true -> {
+                            // تم الإلغاء يدوياً
+                        }
                         e is java.net.ConnectException -> ignored++
                         e is java.net.UnknownHostException -> ignored++
                         e is java.net.SocketTimeoutException -> ignored++
-                        e.message?.contains("Cancel") == true -> {
-                            // تم إلغاء الطلب يدوياً — لا نعده فشلاً
-                            if (!isRunning) break
-                        }
                         else -> {
                             db.domainDao().insert(
                                 Domain(
-                                    sessionId = currentSession!!.id,
                                     domainName = netDomain,
                                     registrationDate = null,
                                     expirationDate = null,
@@ -196,17 +183,17 @@ class DomainScanService : Service() {
                     }
                 }
 
-                // تحديث الجلسة
-                db.sessionDao().update(
-                    currentSession!!.copy(
-                        scannedDomains = progress,
-                        registeredCount = registered,
-                        failedCount = failed,
-                        lastScannedIndex = i
+                currentSession?.let {
+                    db.sessionDao().update(
+                        it.copy(
+                            scannedDomains = progress,
+                            registeredCount = registered,
+                            failedCount = failed,
+                            lastScannedIndex = i
+                        )
                     )
-                )
+                }
 
-                // حساب الوقت المتبقي
                 val elapsed = System.currentTimeMillis() - startTime
                 if (progress > 0) {
                     val avg = elapsed / progress.toDouble()
@@ -216,15 +203,14 @@ class DomainScanService : Service() {
 
                 updateNotification()
 
-                // تأخير بين الطلبات فقط إذا لم يكن متوقفاً
-                if (!isPaused && isRunning) {
-                    delay(delayMs)
+                // تأخير قابل للإلغاء الفوري
+                    delayJob = scope.launch { delay(delayMs) }
+                    delayJob?.join()
                 }
             }
 
             if (isRunning) {
                 db.sessionDao().update(
-                    currentSession!!.copy(
                         endTime = System.currentTimeMillis(),
                         status = SessionStatus.COMPLETED
                     )
@@ -241,8 +227,8 @@ class DomainScanService : Service() {
     private fun stopScan() {
         isRunning = false
         isPaused = false
-        // إلغاء الطلب الحالي فوراً
         currentCall?.cancel()
+        delayJob?.cancel()
         scanJob?.cancel()
         scope.launch {
             currentSession?.let {
@@ -278,7 +264,7 @@ class DomainScanService : Service() {
         val pauseIntent = PendingIntent.getService(
             this, 1,
             Intent(this, DomainScanService::class.java).apply { action = ACTION_PAUSE },
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val openIntent = PendingIntent.getActivity(
             this, 0,
@@ -286,8 +272,8 @@ class DomainScanService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val percent = if (total > 0) (progress * 100 / total) else 0
-        val statusText = if (isPaused) "⏸ متوقف مؤقتاً" else "🔍 جاري الفحص"
-        val pauseLabel = if (isPaused) "▶ استئناف" else "⏸ توقف مؤقت"
+        val statusText = if (isPaused) "⏸ متوقف" else "🔍 جاري الفحص"
+        val pauseLabel = if (isPaused) "▶ استئناف" else "⏸ توقف"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Domain Hunter — $statusText")
@@ -347,6 +333,7 @@ class DomainScanService : Service() {
         super.onDestroy()
         isRunning = false
         currentCall?.cancel()
+        delayJob?.cancel()
         scanJob?.cancel()
         scope.cancel()
     }
