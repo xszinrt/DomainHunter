@@ -63,7 +63,6 @@ class DomainScanService : Service() {
             }
         }
 
-        // ابدأ الـ foreground فوراً
         startForeground(NOTIFICATION_ID, buildNotification())
 
         val timeout = intent?.getLongExtra(EXTRA_TIMEOUT, 5000L) ?: 5000L
@@ -79,7 +78,6 @@ class DomainScanService : Service() {
 
     private fun startScan(filePath: String, timeout: Long, delayMs: Long, sessionId: Long) {
         scanJob = scope.launch {
-            // قراءة الملف سطراً بسطر
             val domains = mutableListOf<String>()
             BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
@@ -93,7 +91,6 @@ class DomainScanService : Service() {
 
             total = domains.size
 
-            // إنشاء جلسة جديدة أو استئناف
             currentSession = if (sessionId != -1L) {
                 db.sessionDao().getById(sessionId)
             } else {
@@ -117,7 +114,6 @@ class DomainScanService : Service() {
             val startTime = System.currentTimeMillis()
 
             for (i in startIndex until domains.size) {
-                // انتظار عند الإيقاف المؤقت
                 while (isPaused && isRunning) { delay(300) }
                 if (!isRunning) break
 
@@ -132,7 +128,6 @@ class DomainScanService : Service() {
                     val response = scanClient.newCall(request).execute()
                     response.close()
 
-                    // النطاق محجوز — جلب RDAP
                     val rdap = withContext(Dispatchers.IO) { RdapFetcher.fetch(netDomain) }
                     val expiring = rdap?.expirationDate?.let { isExpiringSoon(it) } ?: false
 
@@ -158,6 +153,8 @@ class DomainScanService : Service() {
                                 Domain(
                                     sessionId = currentSession!!.id,
                                     domainName = netDomain,
+                                    registrationDate = null,
+                                    expirationDate = null,
                                     status = DomainStatus.FAILED
                                 )
                             )
@@ -166,7 +163,6 @@ class DomainScanService : Service() {
                     }
                 }
 
-                // تحديث الجلسة
                 db.sessionDao().update(
                     currentSession!!.copy(
                         scannedDomains = progress,
@@ -176,7 +172,6 @@ class DomainScanService : Service() {
                     )
                 )
 
-                // حساب الوقت المتبقي
                 val elapsed = System.currentTimeMillis() - startTime
                 if (progress > 0) {
                     val avgPerItem = elapsed / progress.toDouble()
@@ -188,7 +183,6 @@ class DomainScanService : Service() {
                 delay(delayMs)
             }
 
-            // انتهى الفحص
             if (isRunning) {
                 db.sessionDao().update(
                     currentSession!!.copy(
