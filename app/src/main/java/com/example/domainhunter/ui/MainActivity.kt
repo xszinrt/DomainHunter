@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.domainhunter.data.db.AppDatabase
 import com.example.domainhunter.databinding.ActivityMainBinding
 import com.example.domainhunter.service.DomainScanService
 import com.example.domainhunter.utils.ExportHelper
@@ -136,10 +137,7 @@ class MainActivity : AppCompatActivity() {
                 .putString("timeout", binding.etTimeout.text.toString())
                 .putString("delay", binding.etDelay.text.toString())
                 .apply()
-
             if (DomainScanService.isPaused) {
-                // استئناف فوري
-                DomainScanService.isPaused = false
                 startService(Intent(this, DomainScanService::class.java).apply {
                     action = DomainScanService.ACTION_PAUSE
                 })
@@ -149,18 +147,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnPause.setOnClickListener {
-            // إرسال أمر التوقف الفوري
+            if (!DomainScanService.isRunning) return@setOnClickListener
             startService(Intent(this, DomainScanService::class.java).apply {
                 action = DomainScanService.ACTION_PAUSE
             })
         }
 
-        binding.btnStop.setOnClickListener {
-            stopScan()
-        }
+        binding.btnStop.setOnClickListener { stopScan() }
 
         binding.btnClear.setOnClickListener {
-            // مسح سريع على IO thread
             CoroutineScope(Dispatchers.IO).launch {
                 if (DomainScanService.currentSessionId != -1L) {
                     AppDatabase.getInstance(this@MainActivity)
@@ -229,6 +224,7 @@ class MainActivity : AppCompatActivity() {
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
                         lineNum++
+                        if (line!!.trim().lowercase().endsWith(".com")) comCount++
                         if (lineNum % 500 == 0) {
                             val percent = (lineNum * 100 / totalLines)
                             withContext(Dispatchers.Main) {
@@ -279,12 +275,15 @@ class MainActivity : AppCompatActivity() {
         binding.btnStart.isEnabled = true
         binding.btnPause.isEnabled = false
         binding.btnStop.isEnabled = false
+        binding.btnPause.text = "⏸"
     }
 
     private fun startUiUpdate() {
         uiUpdateJob = CoroutineScope(Dispatchers.Main).launch {
             while (true) {
-                if (DomainScanService.isRunning || DomainScanService.isPaused) {
+                val running = DomainScanService.isRunning
+                val paused = DomainScanService.isPaused
+                if (running || paused) {
                     val p = DomainScanService.progress
                     val t = DomainScanService.total.takeIf { it > 0 } ?: totalDomainsInFile
                     binding.tvProgress.text = "$p / $t"
@@ -295,22 +294,18 @@ class MainActivity : AppCompatActivity() {
                     binding.tvIgnored.text = "⏭️ ${DomainScanService.ignored}"
                     binding.tvEta.text = DomainScanService.estimatedTimeLeft
                     binding.tvResultCount.text = "🔍 ${DomainScanService.registered} نطاق محجوز"
-
+                    binding.btnPause.text = if (paused) "▶" else "⏸"
+                    binding.btnStart.isEnabled = paused
+                    binding.btnPause.isEnabled = running || paused
+                    binding.btnStop.isEnabled = running || paused
                     if (DomainScanService.currentSessionId != -1L) {
                         viewModel.setSession(DomainScanService.currentSessionId)
                     }
-
-                    // تحديث حالة الأزرار
-                    binding.btnPause.text = if (DomainScanService.isPaused) "▶" else "⏸"
-                    binding.btnStart.isEnabled = DomainScanService.isPaused
-                    binding.btnPause.isEnabled = DomainScanService.isRunning || DomainScanService.isPaused
-                    binding.btnStop.isEnabled = DomainScanService.isRunning || DomainScanService.isPaused
-
-                        binding.btnStart.isEnabled = true
-                        binding.btnPause.isEnabled = false
-                        binding.btnStop.isEnabled = false
-                        binding.btnPause.text = "⏸"
-                    }
+                } else {
+                    binding.btnStart.isEnabled = filePath != null
+                    binding.btnPause.isEnabled = false
+                    binding.btnStop.isEnabled = false
+                    binding.btnPause.text = "⏸"
                 }
                 delay(500)
             }
