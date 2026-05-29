@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.domainhunter.databinding.ActivityMainBinding
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private var filePath: String? = null
     private var totalDomainsInFile = 0
     private var uiUpdateJob: Job? = null
+    private val prefs by lazy { getSharedPreferences("settings", Context.MODE_PRIVATE) }
 
     private val notifPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -40,11 +42,8 @@ class MainActivity : AppCompatActivity() {
     private val storagePermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            openFilePicker()
-        } else {
-            Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
-        }
+        if (granted) openFilePicker()
+        else Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
     }
 
     private val filePicker = registerForActivityResult(
@@ -53,13 +52,14 @@ class MainActivity : AppCompatActivity() {
         uri ?: return@registerForActivityResult
         try {
             val fileName = getFileName(uri) ?: "domains.txt"
+            val fileSize = getFileSize(uri)
             val file = File(cacheDir, fileName)
             contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(file).use { output -> input.copyTo(output) }
             }
             filePath = file.absolutePath
-            binding.tvFileName.text = "⏳ جاري قراءة الملف..."
-            countDomainsInFile(file)
+            binding.tvFileName.text = "📄 $fileName  (${fileSize})"
+            filterAndCountDomains(file)
         } catch (e: Exception) {
             Toast.makeText(this, "خطأ في قراءة الملف: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -74,6 +74,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return name
+    }
+
+    private fun getFileSize(uri: Uri): String {
+        var size = 0L
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val idx = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (idx >= 0) size = cursor.getLong(idx)
+            }
+        }
+        return when {
+            size < 1024 -> "$size B"
+            size < 1024 * 1024 -> "${size / 1024} KB"
+            else -> String.format("%.2f MB", size / (1024.0 * 1024.0))
+        }
     }
 
     private fun openFilePicker() {
@@ -91,6 +106,10 @@ class MainActivity : AppCompatActivity() {
                 notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+
+        // استعادة آخر قيم
+        binding.etTimeout.setText(prefs.getString("timeout", "5000"))
+        binding.etDelay.setText(prefs.getString("delay", "500"))
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
@@ -114,23 +133,36 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "اختر ملفاً أولاً!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            if (DomainScanService.isPaused) {
-                DomainScanService.isPaused = false
-                binding.btnPause.text = "⏸️ إيقاف مؤقت"
-                return@setOnClickListener
-            }
+            // حفظ القيم
+            prefs.edit()
+                .putString("timeout", binding.etTimeout.text.toString())
+                .putString("delay", binding.etDelay.text.toString())
+                .apply()
             startScan()
         }
 
         binding.btnPause.setOnClickListener {
+            if (!DomainScanService.isRunning) return@setOnClickListener
             startService(Intent(this, DomainScanService::class.java).apply {
                 action = DomainScanService.ACTION_PAUSE
             })
-            DomainScanService.isPaused = !DomainScanService.isPaused
-            binding.btnPause.text = if (DomainScanService.isPaused) "▶️ استئناف" else "⏸️ إيقاف مؤقت"
         }
 
         binding.btnStop.setOnClickListener { stopScan() }
+
+        binding.btnClear.setOnClickListener {
+            filePath = null
+            totalDomainsInFile = 0
+            binding.tvFileName.text = "لم يتم اختيار ملف"
+            binding.tvProgress.text = "0 / 0"
+            binding.progressBar.progress = 0
+            binding.tvRegistered.text = "✅ 0"
+            binding.tvFailed.text = "❌ 0"
+            binding.tvIgnored.text = "⏭️ 0"
+            binding.tvEta.text = "--"
+            binding.importProgressBar.isVisible = false
+            binding.tvImportStatus.isVisible = false
+        }
 
         binding.etSearch.addTextChangedListener { viewModel.setSearch(it.toString()) }
 
@@ -159,27 +191,57 @@ class MainActivity : AppCompatActivity() {
         startUiUpdate()
     }
 
-    private fun countDomainsInFile(file: File) {
+    private fun filterAndCountDomains(file: File) {
+        binding.importProgressBar.isVisible = true
+        binding.tvImportStatus.isVisible = true
+        binding.tvImportStatus.text = "⏳ جاري تصفية النطاقات..."
+        binding.btnStart.isEnabled = false
+
         CoroutineScope(Dispatchers.IO).launch {
-            var count = 0
+            var totalLines = 0
+            var comCount = 0
+
             try {
+                // حساب العدد الكلي أولاً
                 file.bufferedReader().use { reader ->
+                    while (reader.readLine() != null) totalLines++
+                }
+
+                // تصفية .com مع تحديث التقدم
+                file.bufferedReader().use { reader ->
+                    var lineNum = 0
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
-                        if (line!!.trim().lowercase().endsWith(".com")) count++
+                        lineNum++
+                        if (line!!.trim().lowercase().endsWith(".com")) comCount++
+
+                        if (lineNum % 500 == 0) {
+                            val percent = (lineNum * 100 / totalLines)
+                            withContext(Dispatchers.Main) {
+                                binding.importProgressBar.progress = percent
+                                binding.tvImportStatus.text = "⏳ تصفية: $lineNum / $totalLines  ($percent%)"
+                            }
+                        }
+                    }
+                }
+
+                totalDomainsInFile = comCount
+                withContext(Dispatchers.Main) {
+                    binding.importProgressBar.progress = 100
+                    binding.tvImportStatus.text = "✅ إجمالي الملف: $totalLines سطر  |  نطاقات .com: $comCount"
+                    binding.tvProgress.text = "0 / $comCount"
+                    binding.progressBar.max = comCount
+                    binding.btnStart.isEnabled = comCount > 0
+                    if (comCount == 0) {
+                        Toast.makeText(this@MainActivity, "لا توجد نطاقات .com في الملف!", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "خطأ: ${e.message}", Toast.LENGTH_LONG).show()
+                    binding.importProgressBar.isVisible = false
+                    binding.tvImportStatus.isVisible = false
                 }
-                return@launch
-            }
-            totalDomainsInFile = count
-            withContext(Dispatchers.Main) {
-                binding.tvFileName.text = "✅ ${file.name}  |  📊 $count نطاق .com"
-                binding.tvProgress.text = "0 / $count"
-                binding.progressBar.max = count
             }
         }
     }
@@ -209,7 +271,6 @@ class MainActivity : AppCompatActivity() {
         binding.btnStart.isEnabled = true
         binding.btnPause.isEnabled = false
         binding.btnStop.isEnabled = false
-        binding.btnPause.text = "⏸️ إيقاف مؤقت"
     }
 
     private fun startUiUpdate() {
@@ -225,6 +286,7 @@ class MainActivity : AppCompatActivity() {
                     binding.tvFailed.text = "❌ ${DomainScanService.failed}"
                     binding.tvIgnored.text = "⏭️ ${DomainScanService.ignored}"
                     binding.tvEta.text = DomainScanService.estimatedTimeLeft
+                    binding.tvResultCount.text = "🔍 ${DomainScanService.registered} نطاق محجوز"
                     if (DomainScanService.currentSessionId != -1L) {
                         viewModel.setSession(DomainScanService.currentSessionId)
                     }
