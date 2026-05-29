@@ -15,24 +15,22 @@ import com.example.domainhunter.utils.RdapFetcher
 import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.BufferedReader
+import java.io.FileReader
 import java.util.concurrent.TimeUnit
 
 class DomainScanService : Service() {
 
-    private val client = OkHttpClient()
     private var scanJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var db: AppDatabase
-
     private var currentSession: ScanSession? = null
-    private var timeout = 5000L
-    private var delay = 500L
-    private var filePath = ""
 
     companion object {
         const val CHANNEL_ID = "domain_scan_channel"
         const val NOTIFICATION_ID = 1
         const val ACTION_STOP = "ACTION_STOP"
+        const val ACTION_PAUSE = "ACTION_PAUSE"
         const val EXTRA_TIMEOUT = "EXTRA_TIMEOUT"
         const val EXTRA_DELAY = "EXTRA_DELAY"
         const val EXTRA_FILE_PATH = "EXTRA_FILE_PATH"
@@ -45,7 +43,8 @@ class DomainScanService : Service() {
         var registered = 0
         var failed = 0
         var ignored = 0
-        var estimatedTimeLeft = ""
+        var estimatedTimeLeft = "--"
+        var currentSessionId = -1L
     }
 
     override fun onCreate() {
@@ -55,62 +54,74 @@ class DomainScanService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopScan()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP -> { stopScan(); return START_NOT_STICKY }
+            ACTION_PAUSE -> {
+                isPaused = !isPaused
+                updateNotification()
+                return START_STICKY
+            }
         }
 
-        timeout = intent?.getLongExtra(EXTRA_TIMEOUT, 5000L) ?: 5000L
-        delay = intent?.getLongExtra(EXTRA_DELAY, 500L) ?: 500L
-        filePath = intent?.getStringExtra(EXTRA_FILE_PATH) ?: ""
-        val sessionId = intent?.getLongExtra(EXTRA_SESSION_ID, -1L) ?: -1L
-
+        // ابدأ الـ foreground فوراً
         startForeground(NOTIFICATION_ID, buildNotification())
+
+        val timeout = intent?.getLongExtra(EXTRA_TIMEOUT, 5000L) ?: 5000L
+        val delay = intent?.getLongExtra(EXTRA_DELAY, 500L) ?: 500L
+        val filePath = intent?.getStringExtra(EXTRA_FILE_PATH) ?: return START_NOT_STICKY
+        val sessionId = intent.getLongExtra(EXTRA_SESSION_ID, -1L)
+
         isRunning = true
         isPaused = false
-
-        startScan(sessionId)
+        startScan(filePath, timeout, delay, sessionId)
         return START_STICKY
     }
 
-    private fun startScan(sessionId: Long) {
+    private fun startScan(filePath: String, timeout: Long, delayMs: Long, sessionId: Long) {
         scanJob = scope.launch {
-            currentSession = if (sessionId != -1L) {
-                db.sessionDao().getById(sessionId)
-            } else null
-
-            val lines = mutableListOf<String>()
-            java.io.BufferedReader(java.io.FileReader(filePath)).use { reader ->
+            // قراءة الملف سطراً بسطر
+            val domains = mutableListOf<String>()
+            BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
-                    line?.trim()?.lowercase()?.let {
-                        if (it.endsWith(".com")) lines.add(it.removeSuffix(".com"))
+                    val trimmed = line!!.trim().lowercase()
+                    if (trimmed.endsWith(".com")) {
+                        domains.add(trimmed.removeSuffix(".com"))
                     }
                 }
             }
 
-            total = lines.size
-            val startIndex = currentSession?.lastScannedIndex ?: 0
+            total = domains.size
 
-            if (currentSession == null) {
-                val newSession = ScanSession(totalDomains = total)
-                val id = db.sessionDao().insert(newSession)
-                currentSession = db.sessionDao().getById(id)
+            // إنشاء جلسة جديدة أو استئناف
+            currentSession = if (sessionId != -1L) {
+                db.sessionDao().getById(sessionId)
+            } else {
+                val id = db.sessionDao().insert(ScanSession(totalDomains = total))
+                currentSessionId = id
+                db.sessionDao().getById(id)
             }
+
+            val startIndex = currentSession?.lastScannedIndex ?: 0
+            progress = startIndex
+            registered = currentSession?.registeredCount ?: 0
+            failed = currentSession?.failedCount ?: 0
+            ignored = 0
 
             val scanClient = OkHttpClient.Builder()
                 .connectTimeout(timeout, TimeUnit.MILLISECONDS)
                 .readTimeout(timeout, TimeUnit.MILLISECONDS)
+                .followRedirects(true)
                 .build()
 
             val startTime = System.currentTimeMillis()
 
-            for (i in startIndex until lines.size) {
-                while (isPaused) { delay(500) }
+            for (i in startIndex until domains.size) {
+                // انتظار عند الإيقاف المؤقت
+                while (isPaused && isRunning) { delay(300) }
                 if (!isRunning) break
 
-                val name = lines[i]
-                val netDomain = "$name.net"
+                val netDomain = "${domains[i]}.net"
                 progress = i + 1
 
                 try {
@@ -118,15 +129,12 @@ class DomainScanService : Service() {
                         .url("http://$netDomain")
                         .head()
                         .build()
-
                     val response = scanClient.newCall(request).execute()
                     response.close()
 
                     // النطاق محجوز — جلب RDAP
-                    val rdap = RdapFetcher.fetch(netDomain)
-                    val expiring = rdap?.expirationDate?.let {
-                        isExpiringSoon(it)
-                    } ?: false
+                    val rdap = withContext(Dispatchers.IO) { RdapFetcher.fetch(netDomain) }
+                    val expiring = rdap?.expirationDate?.let { isExpiringSoon(it) } ?: false
 
                     db.domainDao().insert(
                         Domain(
@@ -141,20 +149,20 @@ class DomainScanService : Service() {
                     registered++
 
                 } catch (e: Exception) {
-                    // فشل الاتصال — نطاق متاح أو خطأ
-                    if (e is java.net.ConnectException || e is java.net.UnknownHostException) {
-                        ignored++
-                    } else {
-                        db.domainDao().insert(
-                            Domain(
-                                sessionId = currentSession!!.id,
-                                domainName = netDomain,
-                                registrationDate = null,
-                                expirationDate = null,
-                                status = DomainStatus.FAILED
+                    when (e) {
+                        is java.net.ConnectException,
+                        is java.net.UnknownHostException,
+                        is java.net.SocketTimeoutException -> ignored++
+                        else -> {
+                            db.domainDao().insert(
+                                Domain(
+                                    sessionId = currentSession!!.id,
+                                    domainName = netDomain,
+                                    status = DomainStatus.FAILED
+                                )
                             )
-                        )
-                        failed++
+                            failed++
+                        }
                     }
                 }
 
@@ -170,23 +178,29 @@ class DomainScanService : Service() {
 
                 // حساب الوقت المتبقي
                 val elapsed = System.currentTimeMillis() - startTime
-                val avgPerItem = elapsed / progress.toDouble()
-                val remaining = ((total - progress) * avgPerItem / 1000).toInt()
-                estimatedTimeLeft = formatTime(remaining)
+                if (progress > 0) {
+                    val avgPerItem = elapsed / progress.toDouble()
+                    val remaining = ((total - progress) * avgPerItem / 1000).toInt()
+                    estimatedTimeLeft = formatTime(remaining)
+                }
 
                 updateNotification()
-                delay(delay)
+                delay(delayMs)
             }
 
             // انتهى الفحص
-            db.sessionDao().update(
-                currentSession!!.copy(
-                    endTime = System.currentTimeMillis(),
-                    status = SessionStatus.COMPLETED
+            if (isRunning) {
+                db.sessionDao().update(
+                    currentSession!!.copy(
+                        endTime = System.currentTimeMillis(),
+                        status = SessionStatus.COMPLETED
+                    )
                 )
-            )
+                showCompletedNotification()
+            }
+
             isRunning = false
-            showCompletedNotification()
+            stopForeground(STOP_FOREGROUND_DETACH)
             stopSelf()
         }
     }
@@ -208,8 +222,7 @@ class DomainScanService : Service() {
         return try {
             val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
             val exp = sdf.parse(expirationDate) ?: return false
-            val diff = exp.time - System.currentTimeMillis()
-            diff < 30L * 24 * 60 * 60 * 1000
+            exp.time - System.currentTimeMillis() < 30L * 24 * 60 * 60 * 1000
         } catch (e: Exception) { false }
     }
 
@@ -233,17 +246,24 @@ class DomainScanService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val percent = if (total > 0) (progress * 100 / total) else 0
+        val statusText = if (isPaused) "⏸️ متوقف مؤقتاً" else "🔍 جاري الفحص"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("🔍 Domain Hunter")
-            .setContentText("تم فحص $progress / $total")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("✅ محجوزة: $registered  |  ❌ فاشلة: $failed  |  ⏭️ متجاهلة: $ignored\n📊 $progress / $total  ($percent%)\n⏱️ متبقي: $estimatedTimeLeft"))
+            .setContentTitle("Domain Hunter - $statusText")
+            .setContentText("$progress / $total  ($percent%)")
+            .setStyle(
+                NotificationCompat.BigTextStyle().bigText(
+                    "✅ محجوزة: $registered  |  ❌ فاشلة: $failed  |  ⏭️ متجاهلة: $ignored\n" +
+                    "📊 $progress / $total  ($percent%)\n" +
+                    "⏱️ متبقي: $estimatedTimeLeft"
+                )
+            )
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setProgress(total, progress, false)
             .setContentIntent(openIntent)
-            .addAction(android.R.drawable.ic_delete, "إنهاء", stopIntent)
+            .addAction(android.R.drawable.ic_delete, "⏹️ إنهاء", stopIntent)
             .setOngoing(true)
+            .setSilent(true)
             .build()
     }
 
@@ -260,21 +280,23 @@ class DomainScanService : Service() {
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("✅ اكتمل الفحص!")
-            .setContentText("وجدنا $registered نطاق .net محجوز")
+            .setContentText("وجدنا $registered نطاق .net محجوز من أصل $total")
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setContentIntent(openIntent)
             .setAutoCancel(true)
             .build()
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(2, notification)
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(2, notification)
     }
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID, "Domain Scan", NotificationManager.IMPORTANCE_LOW
-        ).apply { description = "فحص النطاقات في الخلفية" }
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(channel)
+        ).apply {
+            description = "فحص النطاقات في الخلفية"
+            setShowBadge(true)
+        }
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .createNotificationChannel(channel)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

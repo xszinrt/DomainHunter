@@ -1,10 +1,11 @@
 package com.example.domainhunter.ui
 
-import android.app.Activity
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -12,11 +13,13 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.domainhunter.databinding.ActivityMainBinding
 import com.example.domainhunter.service.DomainScanService
 import com.example.domainhunter.utils.ExportHelper
+import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
 
@@ -26,7 +29,12 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
     private val adapter = DomainAdapter()
     private var filePath: String? = null
-    private var currentSessionId: Long = -1L
+    private var totalDomainsInFile = 0
+    private var uiUpdateJob: Job? = null
+
+    private val notifPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {}
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
@@ -35,7 +43,7 @@ class MainActivity : AppCompatActivity() {
                 FileOutputStream(file).use { output -> input.copyTo(output) }
             }
             filePath = file.absolutePath
-            binding.tvFileName.text = "✅ ${file.name}"
+            countDomainsInFile(file)
         }
     }
 
@@ -44,17 +52,26 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // طلب إذن الإشعارات
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
-        viewModel.domains.observe(this) { adapter.submitList(it) }
-
-        // استيراد ملف
-        binding.btnImport.setOnClickListener {
-            filePicker.launch("text/*")
+        viewModel.domains.observe(this) { list ->
+            adapter.submitList(list)
+            if (list.isNotEmpty()) {
+                binding.recyclerView.scrollToPosition(0)
+            }
         }
 
-        // بدأ
+        binding.btnImport.setOnClickListener { filePicker.launch("text/*") }
+
         binding.btnStart.setOnClickListener {
             if (filePath == null) {
                 Toast.makeText(this, "اختر ملفاً أولاً!", Toast.LENGTH_SHORT).show()
@@ -62,54 +79,58 @@ class MainActivity : AppCompatActivity() {
             }
             if (DomainScanService.isPaused) {
                 DomainScanService.isPaused = false
-                binding.btnStart.text = "▶️ بدأ"
+                binding.btnPause.text = "⏸️ إيقاف مؤقت"
                 return@setOnClickListener
             }
             startScan()
         }
 
-        // إيقاف مؤقت
         binding.btnPause.setOnClickListener {
+            val intent = Intent(this, DomainScanService::class.java).apply {
+                action = DomainScanService.ACTION_PAUSE
+            }
+            startService(intent)
             DomainScanService.isPaused = !DomainScanService.isPaused
             binding.btnPause.text = if (DomainScanService.isPaused) "▶️ استئناف" else "⏸️ إيقاف مؤقت"
         }
 
-        // إنهاء
-        binding.btnStop.setOnClickListener {
-            stopScan()
-        }
+        binding.btnStop.setOnClickListener { stopScan() }
 
-        // بحث
-        binding.etSearch.addTextChangedListener {
-            viewModel.setSearch(it.toString())
-        }
+        binding.etSearch.addTextChangedListener { viewModel.setSearch(it.toString()) }
 
-        // تصدير
         binding.btnExport.setOnClickListener {
             val domains = adapter.currentList
-            if (domains.isEmpty()) {
-                Toast.makeText(this, "لا توجد نتائج!", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            startActivity(Intent.createChooser(
-                ExportHelper.exportToCsv(this, domains), "تصدير النتائج"
-            ))
+            if (domains.isEmpty()) { Toast.makeText(this, "لا توجد نتائج!", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+            startActivity(Intent.createChooser(ExportHelper.exportToCsv(this, domains), "تصدير النتائج"))
         }
 
-        // نسخ الكل
         binding.btnCopyAll.setOnClickListener {
             val domains = adapter.currentList
-            if (domains.isEmpty()) {
-                Toast.makeText(this, "لا توجد نتائج!", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            if (domains.isEmpty()) { Toast.makeText(this, "لا توجد نتائج!", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("domains", ExportHelper.copyAll(domains)))
             Toast.makeText(this, "تم نسخ ${domains.size} نطاق!", Toast.LENGTH_SHORT).show()
         }
 
-        // تحديث التقدم
-        updateProgressLoop()
+        startUiUpdate()
+    }
+
+    private fun countDomainsInFile(file: File) {
+        CoroutineScope(Dispatchers.IO).launch {
+            var count = 0
+            file.bufferedReader().use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    if (line!!.trim().lowercase().endsWith(".com")) count++
+                }
+            }
+            totalDomainsInFile = count
+            withContext(Dispatchers.Main) {
+                binding.tvFileName.text = "✅ ${file.name}  |  📊 $count نطاق .com"
+                binding.tvProgress.text = "0 / $count"
+                binding.progressBar.max = count
+            }
+        }
     }
 
     private fun startScan() {
@@ -123,36 +144,59 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(intent)
         }
+
+        if (DomainScanService.currentSessionId != -1L) {
+            viewModel.setSession(DomainScanService.currentSessionId)
+        }
+
         binding.btnStart.isEnabled = false
         binding.btnPause.isEnabled = true
         binding.btnStop.isEnabled = true
     }
 
     private fun stopScan() {
-        val intent = Intent(this, DomainScanService::class.java).apply {
+        startService(Intent(this, DomainScanService::class.java).apply {
             action = DomainScanService.ACTION_STOP
-        }
-        startService(intent)
+        })
         binding.btnStart.isEnabled = true
         binding.btnPause.isEnabled = false
         binding.btnStop.isEnabled = false
         binding.btnPause.text = "⏸️ إيقاف مؤقت"
     }
 
-    private fun updateProgressLoop() {
-        binding.root.postDelayed({
-            if (DomainScanService.isRunning) {
-                val p = DomainScanService.progress
-                val t = DomainScanService.total
-                val percent = if (t > 0) (p * 100 / t) else 0
-                binding.tvProgress.text = "$p / $t"
-                binding.progressBar.progress = percent
-                binding.tvRegistered.text = "✅ ${DomainScanService.registered}"
-                binding.tvFailed.text = "❌ ${DomainScanService.failed}"
-                binding.tvIgnored.text = "⏭️ ${DomainScanService.ignored}"
-                binding.tvEta.text = DomainScanService.estimatedTimeLeft
+    private fun startUiUpdate() {
+        uiUpdateJob = CoroutineScope(Dispatchers.Main).launch {
+            while (true) {
+                if (DomainScanService.isRunning) {
+                    val p = DomainScanService.progress
+                    val t = DomainScanService.total.takeIf { it > 0 } ?: totalDomainsInFile
+                    val percent = if (t > 0) (p * 100 / t) else 0
+                    binding.tvProgress.text = "$p / $t"
+                    binding.progressBar.max = t
+                    binding.progressBar.progress = p
+                    binding.tvRegistered.text = "✅ ${DomainScanService.registered}"
+                    binding.tvFailed.text = "❌ ${DomainScanService.failed}"
+                    binding.tvIgnored.text = "⏭️ ${DomainScanService.ignored}"
+                    binding.tvEta.text = DomainScanService.estimatedTimeLeft
+
+                    // تحديث الـ session في ViewModel
+                    if (DomainScanService.currentSessionId != -1L) {
+                        viewModel.setSession(DomainScanService.currentSessionId)
+                    }
+
+                    if (!DomainScanService.isRunning) {
+                        binding.btnStart.isEnabled = true
+                        binding.btnPause.isEnabled = false
+                        binding.btnStop.isEnabled = false
+                    }
+                }
+                delay(1000)
             }
-            updateProgressLoop()
-        }, 1000)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        uiUpdateJob?.cancel()
     }
 }
