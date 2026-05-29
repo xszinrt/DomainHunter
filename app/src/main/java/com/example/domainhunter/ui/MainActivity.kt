@@ -91,7 +91,19 @@ class MainActivity : AppCompatActivity() {
             adapter.submitList(list)
         }
 
+        private val readStoragePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
+            else Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
+        }
+
         binding.btnImport.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
+            } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
+            } else {
+                requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 100)
+            }
             filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
         }
 
@@ -226,6 +238,15 @@ class MainActivity : AppCompatActivity() {
                 }
                 delay(1000)
             }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
+        } else {
+            Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
         }
     }
 
