@@ -37,25 +37,29 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) {}
 
+    private val storagePermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            openFilePicker()
+        } else {
+            Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private val filePicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri ?: return@registerForActivityResult
         try {
-            // نسخ الملف لمجلد التطبيق
             val fileName = getFileName(uri) ?: "domains.txt"
             val file = File(cacheDir, fileName)
-
             contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(file).use { output ->
-                    input.copyTo(output)
-                }
+                FileOutputStream(file).use { output -> input.copyTo(output) }
             }
-
             filePath = file.absolutePath
             binding.tvFileName.text = "⏳ جاري قراءة الملف..."
             countDomainsInFile(file)
-
         } catch (e: Exception) {
             Toast.makeText(this, "خطأ في قراءة الملف: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -70,6 +74,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return name
+    }
+
+    private fun openFilePicker() {
+        filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,24 +95,18 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
-        viewModel.domains.observe(this) { list ->
-            adapter.submitList(list)
-        }
-
-        private val readStoragePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
-            else Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
-        }
+        viewModel.domains.observe(this) { list -> adapter.submitList(list) }
 
         binding.btnImport.setOnClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
-            } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
+                openFilePicker()
+            } else if (ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED) {
+                openFilePicker()
             } else {
-                requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 100)
+                storagePermission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
         }
 
         binding.btnStart.setOnClickListener {
@@ -173,13 +175,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 return@launch
             }
-
             totalDomainsInFile = count
             withContext(Dispatchers.Main) {
                 binding.tvFileName.text = "✅ ${file.name}  |  📊 $count نطاق .com"
                 binding.tvProgress.text = "0 / $count"
                 binding.progressBar.max = count
-                binding.btnStart.isEnabled = true
             }
         }
     }
@@ -225,11 +225,9 @@ class MainActivity : AppCompatActivity() {
                     binding.tvFailed.text = "❌ ${DomainScanService.failed}"
                     binding.tvIgnored.text = "⏭️ ${DomainScanService.ignored}"
                     binding.tvEta.text = DomainScanService.estimatedTimeLeft
-
                     if (DomainScanService.currentSessionId != -1L) {
                         viewModel.setSession(DomainScanService.currentSessionId)
                     }
-
                     if (!DomainScanService.isRunning) {
                         binding.btnStart.isEnabled = true
                         binding.btnPause.isEnabled = false
@@ -238,15 +236,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 delay(1000)
             }
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            filePicker.launch(arrayOf("text/plain", "text/csv", "*/*"))
-        } else {
-            Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
         }
     }
 
