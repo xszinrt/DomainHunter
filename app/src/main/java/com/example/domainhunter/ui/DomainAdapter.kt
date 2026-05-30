@@ -23,8 +23,8 @@ class DomainAdapter : ListAdapter<Domain, DomainAdapter.ViewHolder>(DiffCallback
 
         fun bind(domain: Domain) {
             binding.tvDomainName.text = domain.domainName
-            binding.tvRegDate.text = "📅 سُجّل: ${domain.registrationDate ?: "غير معروف"}"
-            binding.tvExpDate.text = "⏳ ينتهي: ${domain.expirationDate ?: "غير معروف"}"
+            binding.tvRegDate.text = "Reg: ${domain.registrationDate ?: "Unknown"}"
+            binding.tvExpDate.text = "Exp: ${domain.expirationDate ?: "Unknown"}"
             binding.tvExpiringSoon.isVisible = domain.isExpiringSoon
             binding.tvFailed.isVisible = domain.status == DomainStatus.FAILED
 
@@ -36,7 +36,7 @@ class DomainAdapter : ListAdapter<Domain, DomainAdapter.ViewHolder>(DiffCallback
             binding.btnCopy.setOnClickListener {
                 val clipboard = it.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("domain", domain.domainName))
-                Toast.makeText(it.context, "تم النسخ!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(it.context, "Copied!", Toast.LENGTH_SHORT).show()
             }
 
             binding.btnGoogle.setOnClickListener {

@@ -12,6 +12,7 @@ import com.example.domainhunter.data.model.ScanSession
 import com.example.domainhunter.data.model.SessionStatus
 import com.example.domainhunter.ui.MainActivity
 import com.example.domainhunter.utils.RdapFetcher
+import com.example.domainhunter.utils.DomainParser
 import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.FileReader

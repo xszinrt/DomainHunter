@@ -10,17 +10,20 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.domainhunter.data.db.AppDatabase
 import com.example.domainhunter.databinding.ActivityMainBinding
 import com.example.domainhunter.service.DomainScanService
+import com.example.domainhunter.utils.DomainParser
 import com.example.domainhunter.utils.ExportHelper
 import kotlinx.coroutines.*
 import java.io.File
@@ -44,7 +47,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) openFilePicker()
-        else Toast.makeText(this, "يجب منح صلاحية قراءة الملفات", Toast.LENGTH_SHORT).show()
+        else Toast.makeText(this, "Storage permission required", Toast.LENGTH_SHORT).show()
     }
 
     private val filePicker = registerForActivityResult(
@@ -62,11 +65,11 @@ class MainActivity : AppCompatActivity() {
             binding.tvFileName.text = "📄 $fileName  ($fileSize)"
             filterAndCountDomains(file)
         } catch (e: Exception) {
-            Toast.makeText(this, "خطأ: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
-    private fun getFileName(uri: Uri): String? {
+    private fun getFileName(uri: android.net.Uri): String? {
         var name: String? = null
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -77,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         return name
     }
 
-    private fun getFileSize(uri: Uri): String {
+    private fun getFileSize(uri: android.net.Uri): String {
         var size = 0L
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -116,6 +119,22 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.domains.observe(this) { list -> adapter.submitList(list) }
 
+        // Sort Spinner
+        val sortOptions = listOf("Default", "Expiry: Soonest", "Expiry: Latest")
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, sortOptions)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerSort.adapter = spinnerAdapter
+        binding.spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                viewModel.setSort(when (pos) {
+                    1 -> SortOrder.EXPIRY_SOONEST
+                    2 -> SortOrder.EXPIRY_LATEST
+                    else -> SortOrder.DEFAULT
+                })
+            }
+            override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
+
         binding.btnImport.setOnClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 openFilePicker()
@@ -130,7 +149,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnStart.setOnClickListener {
             if (filePath == null) {
-                Toast.makeText(this, "اختر ملفاً أولاً!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please select a file first!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             prefs.edit()
@@ -166,14 +185,14 @@ class MainActivity : AppCompatActivity() {
                     filePath = null
                     totalDomainsInFile = 0
                     DomainScanService.currentSessionId = -1L
-                    binding.tvFileName.text = "لم يتم اختيار ملف"
+                    binding.tvFileName.text = "No file selected"
                     binding.tvProgress.text = "0 / 0"
                     binding.progressBar.progress = 0
                     binding.tvRegistered.text = "✅ 0"
                     binding.tvFailed.text = "❌ 0"
-                    binding.tvIgnored.text = "⏭️ 0"
+                    binding.tvIgnored.text = "⏭ 0"
                     binding.tvEta.text = "--"
-                    binding.tvResultCount.text = "🔍 0 نطاق محجوز"
+                    binding.tvResultCount.text = "🔍 0 registered"
                     binding.importProgressBar.isVisible = false
                     binding.tvImportStatus.isVisible = false
                     adapter.submitList(emptyList())
@@ -181,28 +200,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.etSearch.addTextChangedListener { viewModel.setSearch(it.toString()) }
-
         binding.btnExport.setOnClickListener {
             val domains = adapter.currentList
             if (domains.isEmpty()) {
-                Toast.makeText(this, "لا توجد نتائج!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "No results to export!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             startActivity(Intent.createChooser(
-                ExportHelper.exportToCsv(this, domains), "تصدير النتائج"
+                ExportHelper.exportToCsv(this, domains), "Export Results"
             ))
         }
 
         binding.btnCopyAll.setOnClickListener {
             val domains = adapter.currentList
             if (domains.isEmpty()) {
-                Toast.makeText(this, "لا توجد نتائج!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "No results!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("domains", ExportHelper.copyAll(domains)))
-            Toast.makeText(this, "تم نسخ ${domains.size} نطاق!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Copied ${domains.size} domains!", Toast.LENGTH_SHORT).show()
         }
 
         startUiUpdate()
@@ -211,7 +228,7 @@ class MainActivity : AppCompatActivity() {
     private fun filterAndCountDomains(file: File) {
         binding.importProgressBar.isVisible = true
         binding.tvImportStatus.isVisible = true
-        binding.tvImportStatus.text = "⏳ جاري تصفية النطاقات..."
+        binding.tvImportStatus.text = "⏳ Filtering domains..."
         binding.btnStart.isEnabled = false
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -224,7 +241,7 @@ class MainActivity : AppCompatActivity() {
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
                         lineNum++
-                        if (line!!.trim().lowercase().endsWith(".com")) comCount++
+                        if (DomainParser.extractDomain(line!!) != null) comCount++
                         if (lineNum % 500 == 0) {
                             val percent = (lineNum * 100 / totalLines)
                             withContext(Dispatchers.Main) {
@@ -237,14 +254,14 @@ class MainActivity : AppCompatActivity() {
                 totalDomainsInFile = comCount
                 withContext(Dispatchers.Main) {
                     binding.importProgressBar.progress = 100
-                    binding.tvImportStatus.text = "✅ إجمالي: $totalLines  |  .com: $comCount"
+                    binding.tvImportStatus.text = "✅ Total: $totalLines lines  |  .com: $comCount"
                     binding.tvProgress.text = "0 / $comCount"
                     binding.progressBar.max = comCount
                     binding.btnStart.isEnabled = comCount > 0
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "خطأ: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -291,9 +308,9 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.progress = p
                     binding.tvRegistered.text = "✅ ${DomainScanService.registered}"
                     binding.tvFailed.text = "❌ ${DomainScanService.failed}"
-                    binding.tvIgnored.text = "⏭️ ${DomainScanService.ignored}"
+                    binding.tvIgnored.text = "⏭ ${DomainScanService.ignored}"
                     binding.tvEta.text = DomainScanService.estimatedTimeLeft
-                    binding.tvResultCount.text = "🔍 ${DomainScanService.registered} نطاق محجوز"
+                    binding.tvResultCount.text = "🔍 ${DomainScanService.registered} registered"
                     binding.btnPause.text = if (paused) "▶" else "⏸"
                     binding.btnStart.isEnabled = paused
                     binding.btnPause.isEnabled = running || paused

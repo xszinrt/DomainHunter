@@ -15,7 +15,6 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- اسم النطاق -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -32,13 +31,12 @@
                 android:id="@+id/tvExpiringSoon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⚠️ ينتهي قريباً"
+                android:text="⚠ Expiring Soon"
                 android:textColor="@color/warning"
                 android:textSize="11sp"
                 android:visibility="gone"/>
         </LinearLayout>
 
-        <!-- التواريخ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -60,17 +58,15 @@
                 android:textSize="12sp"/>
         </LinearLayout>
 
-        <!-- حالة فاشل -->
         <TextView
             android:id="@+id/tvFailed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⚠️ فشل الفحص"
+            android:text="⚠ Check Failed"
             android:textColor="@color/error"
             android:textSize="11sp"
             android:visibility="gone"/>
 
-        <!-- الأزرار -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -81,8 +77,9 @@
                 android:layout_width="0dp"
                 android:layout_height="36dp"
                 android:layout_weight="1"
-                android:text="🌐 فتح"
+                android:text="Open"
                 android:backgroundTint="@color/bg_card"
+                android:textColor="@color/text_primary"
                 android:textSize="11sp"
                 android:layout_marginEnd="4dp"/>
             <Button
@@ -90,8 +87,9 @@
                 android:layout_width="0dp"
                 android:layout_height="36dp"
                 android:layout_weight="1"
-                android:text="📋 نسخ"
+                android:text="Copy"
                 android:backgroundTint="@color/bg_card"
+                android:textColor="@color/text_primary"
                 android:textSize="11sp"
                 android:layout_marginEnd="4dp"/>
             <Button
@@ -99,8 +97,9 @@
                 android:layout_width="0dp"
                 android:layout_height="36dp"
                 android:layout_weight="1"
-                android:text="🔍 جوجل"
+                android:text="Google"
                 android:backgroundTint="@color/bg_card"
+                android:textColor="@color/text_primary"
                 android:textSize="11sp"/>
         </LinearLayout>
 

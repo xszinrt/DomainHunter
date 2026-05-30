@@ -18,6 +18,7 @@
         android:gravity="center"
         android:paddingBottom="12dp"/>
 
+    <!-- File Import -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -33,14 +34,14 @@
                 android:id="@+id/btnImport"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:text="📂 استيراد ملف النطاقات"
+                android:text="📂 Import Domains File"
                 android:backgroundTint="@color/bg_card"
                 android:textColor="@color/text_primary"/>
             <TextView
                 android:id="@+id/tvFileName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="لم يتم اختيار ملف"
+                android:text="No file selected"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:gravity="center"
@@ -66,6 +67,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Settings -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -86,7 +88,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⏱️ Timeout (ms)"
+                    android:text="⏱ Timeout (ms)"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"/>
                 <com.google.android.material.textfield.TextInputEditText
@@ -123,6 +125,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Control Buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -168,6 +171,7 @@
             android:backgroundTint="@color/bg_card"/>
     </LinearLayout>
 
+    <!-- Progress -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -233,7 +237,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="⏭️ 0"
+                    android:text="⏭ 0"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     android:gravity="end"/>
@@ -241,48 +245,55 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Results Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="4dp">
+        android:layout_marginBottom="6dp"
+        android:gravity="center_vertical">
+
         <TextView
             android:id="@+id/tvResultCount"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="🔍 0 نطاق محجوز"
+            android:text="🔍 0 registered"
             android:textColor="@color/accent"
-            android:textStyle="bold"
-            android:gravity="center_vertical"/>
+            android:textStyle="bold"/>
+
+        <!-- Sort Spinner -->
+        <Spinner
+            android:id="@+id/spinnerSort"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="@color/bg_secondary"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginStart="8dp"/>
+
         <Button
             android:id="@+id/btnExport"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="تصدير"
+            android:text="Export"
             android:backgroundTint="@color/bg_card"
-            android:textSize="11sp"/>
+            android:textColor="@color/text_primary"
+            android:textSize="11sp"
+            android:layout_marginStart="4dp"/>
+
         <Button
             android:id="@+id/btnCopyAll"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="نسخ الكل"
+            android:text="Copy All"
             android:backgroundTint="@color/bg_card"
+            android:textColor="@color/text_primary"
             android:textSize="11sp"
             android:layout_marginStart="4dp"/>
     </LinearLayout>
 
-    <com.google.android.material.textfield.TextInputEditText
-        android:id="@+id/etSearch"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:hint="🔎 بحث في النتائج..."
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_secondary"
-        android:background="@color/bg_secondary"
-        android:paddingStart="8dp"
-        android:layout_marginBottom="8dp"/>
-
+    <!-- Results List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
