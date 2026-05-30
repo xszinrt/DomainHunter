@@ -42,6 +42,10 @@ class MainActivity : AppCompatActivity() {
     private var uiUpdateJob: Job? = null
     private val prefs by lazy { getSharedPreferences("settings", Context.MODE_PRIVATE) }
 
+    // قيم الإعدادات الافتراضية
+    private var timeoutValue = 5000L
+    private var delayValue = 500L
+
     private val notifPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {}
@@ -107,6 +111,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // قراءة الإعدادات المحفوظة
+        timeoutValue = prefs.getString("timeout", "5000")?.toLongOrNull() ?: 5000L
+        delayValue = prefs.getString("delay", "500")?.toLongOrNull() ?: 500L
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -114,10 +122,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.etTimeout.setText(prefs.getString("timeout", "5000"))
-        binding.etDelay.setText(prefs.getString("delay", "500"))
-
-        // ✅ NEW: زر الإعدادات
+        // زر الإعدادات
         binding.btnSettings.setOnClickListener {
             showSettingsDialog()
         }
@@ -160,10 +165,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please select a file first!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            prefs.edit()
-                .putString("timeout", binding.etTimeout.text.toString())
-                .putString("delay", binding.etDelay.text.toString())
-                .apply()
             if (DomainScanService.isPaused) {
                 startService(Intent(this, DomainScanService::class.java).apply {
                     action = DomainScanService.ACTION_PAUSE
@@ -278,10 +279,8 @@ class MainActivity : AppCompatActivity() {
     private fun startScan() {
         val intent = Intent(this, DomainScanService::class.java).apply {
             putExtra(DomainScanService.EXTRA_FILE_PATH, filePath)
-            putExtra(DomainScanService.EXTRA_TIMEOUT,
-                binding.etTimeout.text.toString().toLongOrNull() ?: 5000L)
-            putExtra(DomainScanService.EXTRA_DELAY,
-                binding.etDelay.text.toString().toLongOrNull() ?: 500L)
+            putExtra(DomainScanService.EXTRA_TIMEOUT, timeoutValue)
+            putExtra(DomainScanService.EXTRA_DELAY, delayValue)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -337,26 +336,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ NEW: دالة إظهار مربع حوار الإعدادات
     private fun showSettingsDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_settings, null)
         val etTimeoutDialog = dialogView.findViewById<TextInputEditText>(R.id.etTimeoutDialog)
         val etDelayDialog = dialogView.findViewById<TextInputEditText>(R.id.etDelayDialog)
         
-        etTimeoutDialog.setText(binding.etTimeout.text.toString())
-        etDelayDialog.setText(binding.etDelay.text.toString())
+        etTimeoutDialog.setText(timeoutValue.toString())
+        etDelayDialog.setText(delayValue.toString())
         
         AlertDialog.Builder(this)
             .setTitle("⚙️ Scan Settings")
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                val timeout = etTimeoutDialog.text.toString()
-                val delay = etDelayDialog.text.toString()
-                binding.etTimeout.setText(timeout)
-                binding.etDelay.setText(delay)
+                timeoutValue = etTimeoutDialog.text.toString().toLongOrNull() ?: 5000L
+                delayValue = etDelayDialog.text.toString().toLongOrNull() ?: 500L
                 prefs.edit()
-                    .putString("timeout", timeout)
-                    .putString("delay", delay)
+                    .putString("timeout", timeoutValue.toString())
+                    .putString("delay", delayValue.toString())
                     .apply()
             }
             .setNegativeButton("Cancel", null)
