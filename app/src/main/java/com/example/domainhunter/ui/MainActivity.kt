@@ -11,8 +11,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -129,19 +127,13 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.domains.observe(this) { list -> adapter.submitList(list) }
 
-        val sortOptions = listOf("Default", "Expiry: Soonest", "Expiry: Latest")
-        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, sortOptions)
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerSort.adapter = spinnerAdapter
-        binding.spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                viewModel.setSort(when (pos) {
-                    1 -> SortOrder.EXPIRY_SOONEST
-                    2 -> SortOrder.EXPIRY_LATEST
-                    else -> SortOrder.DEFAULT
-                })
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
+        // ✅ أزرار الترتيب الجديدة
+        binding.btnSortAsc.setOnClickListener {
+            viewModel.setSort(SortOrder.EXPIRY_SOONEST)
+        }
+
+        binding.btnSortDesc.setOnClickListener {
+            viewModel.setSort(SortOrder.EXPIRY_LATEST)
         }
 
         binding.btnImport.setOnClickListener {
@@ -177,7 +169,6 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
-        // ✅ Stop: يوقف الفحص ويمسح النتائج ويعيد قسم الاستيراد
         binding.btnStop.setOnClickListener {
             stopScanAndClearResults()
         }
@@ -264,18 +255,14 @@ class MainActivity : AppCompatActivity() {
         binding.btnPause.isEnabled = true
         binding.btnStop.isEnabled = true
         
-        // ✅ إخفاء قسم الاستيراد أثناء الفحص
         binding.cardImport.visibility = View.GONE
     }
 
-    // ✅ وظيفة جديدة: إيقاف الفحص ومسح جميع النتائج
     private fun stopScanAndClearResults() {
-        // إيقاف الخدمة
         startService(Intent(this, DomainScanService::class.java).apply {
             action = DomainScanService.ACTION_STOP
         })
         
-        // مسح قاعدة البيانات
         CoroutineScope(Dispatchers.IO).launch {
             if (DomainScanService.currentSessionId != -1L) {
                 AppDatabase.getInstance(this@MainActivity)
@@ -283,7 +270,6 @@ class MainActivity : AppCompatActivity() {
                     .deleteBySession(DomainScanService.currentSessionId)
             }
             withContext(Dispatchers.Main) {
-                // إعادة تعيين جميع المتغيرات
                 filePath = null
                 totalDomainsInFile = 0
                 DomainScanService.currentSessionId = -1L
@@ -293,7 +279,6 @@ class MainActivity : AppCompatActivity() {
                 DomainScanService.ignored = 0
                 DomainScanService.estimatedTimeLeft = "--"
                 
-                // إعادة تعيين الواجهة
                 binding.tvFileName.text = "No file selected"
                 binding.tvProgress.text = "0 / 0"
                 binding.progressBar.progress = 0
@@ -305,10 +290,8 @@ class MainActivity : AppCompatActivity() {
                 binding.importProgressBar.isVisible = false
                 binding.tvImportStatus.isVisible = false
                 
-                // ✅ إعادة ظهور قسم الاستيراد
                 binding.cardImport.visibility = View.VISIBLE
                 
-                // إعادة تعيين الأزرار
                 binding.btnStart.isEnabled = true
                 binding.btnPause.isEnabled = false
                 binding.btnStop.isEnabled = false
@@ -335,7 +318,7 @@ class MainActivity : AppCompatActivity() {
                     binding.tvIgnored.text = "⏭ ${DomainScanService.ignored}"
                     binding.tvEta.text = DomainScanService.estimatedTimeLeft
                     binding.tvResultCount.text = "🔍 ${DomainScanService.registered} registered"
-                    binding.btnPause.text = if (paused) "▶" else "⏸"
+                    binding.btnPause.text = if (paused) "⏸" else "⏸"
                     binding.btnStart.isEnabled = paused
                     binding.btnPause.isEnabled = running || paused
                     binding.btnStop.isEnabled = running || paused
@@ -346,7 +329,6 @@ class MainActivity : AppCompatActivity() {
                     binding.btnStart.isEnabled = filePath != null
                     binding.btnPause.isEnabled = false
                     binding.btnStop.isEnabled = false
-                    binding.btnPause.text = "⏸"
                 }
                 delay(500)
             }

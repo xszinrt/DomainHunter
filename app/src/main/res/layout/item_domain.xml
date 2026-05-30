@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="12dp">
 
         <!-- السطر الأول: الاسم + علامة انتهاء الصلاحية -->
         <LinearLayout
@@ -33,9 +33,9 @@
                 android:id="@+id/tvExpiringSoon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⚠️ Expiring"
+                android:text="⚠️"
                 android:textColor="@color/warning"
-                android:textSize="10sp"
+                android:textSize="14sp"
                 android:visibility="gone" />
         </LinearLayout>
 
@@ -72,50 +72,51 @@
             android:id="@+id/tvFailed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="❌ Check Failed"
+            android:text="❌"
             android:textColor="@color/error"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:visibility="gone"
             android:paddingTop="4dp" />
 
-        <!-- الأزرار -->
+        <!-- الأزرار (أيقونات فقط) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingTop="8dp">
+            android:paddingTop="10dp"
+            android:gravity="center">
 
-            <Button
+            <ImageButton
                 android:id="@+id/btnOpen"
                 android:layout_width="0dp"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:text="Open"
-                android:textSize="10sp"
-                android:backgroundTint="@color/bg_card"
-                android:textColor="@color/text_primary"
-                android:layout_marginEnd="4dp" />
+                android:src="@android:drawable/ic_menu_view"
+                android:background="@color/bg_card"
+                android:tint="@color/text_primary"
+                android:layout_marginEnd="6dp"
+                android:padding="8dp" />
 
-            <Button
+            <ImageButton
                 android:id="@+id/btnCopy"
                 android:layout_width="0dp"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:text="Copy"
-                android:textSize="10sp"
-                android:backgroundTint="@color/bg_card"
-                android:textColor="@color/text_primary"
-                android:layout_marginEnd="4dp" />
+                android:src="@android:drawable/ic_menu_save"
+                android:background="@color/bg_card"
+                android:tint="@color/text_primary"
+                android:layout_marginEnd="6dp"
+                android:padding="8dp" />
 
-            <Button
+            <ImageButton
                 android:id="@+id/btnGoogle"
                 android:layout_width="0dp"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:text="Google"
-                android:textSize="10sp"
-                android:backgroundTint="@color/bg_card"
-                android:textColor="@color/text_primary" />
+                android:src="@android:drawable/ic_menu_search"
+                android:background="@color/bg_card"
+                android:tint="@color/text_primary"
+                android:padding="8dp" />
         </LinearLayout>
 
     </LinearLayout>

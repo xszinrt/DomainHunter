@@ -30,7 +30,7 @@
             android:layout_height="40dp"
             android:src="@android:drawable/ic_menu_edit"
             android:background="@android:color/transparent"
-            android:tint="@color/text_secondary" />
+            android:tint="@color/text_primary" />
     </LinearLayout>
 
     <!-- خط فاصل -->
@@ -99,7 +99,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Progress Card -->
+    <!-- Progress Card (بدون عنوان "Scan Progress") -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -113,15 +113,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📊 Scan Progress"
-                android:textColor="@color/accent"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -189,7 +180,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Control Buttons Card -->
+    <!-- Control Buttons Card (بدون عنوان "Controls") -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -201,58 +192,41 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🎮 Controls"
-                android:textColor="@color/accent"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="10dp" />
+            <Button
+                android:id="@+id/btnStop"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="⏹"
+                android:textSize="24sp"
+                android:backgroundTint="@color/error"
+                android:layout_marginEnd="12dp"
+                android:enabled="false" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnPause"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="⏸"
+                android:textSize="24sp"
+                android:backgroundTint="@color/warning"
+                android:layout_marginEnd="12dp"
+                android:enabled="false" />
 
-                <Button
-                    android:id="@+id/btnStop"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:text="⏹ Stop"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:backgroundTint="@color/error"
-                    android:layout_marginEnd="8dp"
-                    android:enabled="false" />
-
-                <Button
-                    android:id="@+id/btnPause"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:text="⏸ Pause"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:backgroundTint="@color/warning"
-                    android:layout_marginEnd="8dp"
-                    android:enabled="false" />
-
-                <Button
-                    android:id="@+id/btnStart"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:text="▶ Start"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:backgroundTint="@color/success"
-                    android:enabled="false" />
-            </LinearLayout>
+            <Button
+                android:id="@+id/btnStart"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="▶"
+                android:textSize="24sp"
+                android:backgroundTint="@color/success"
+                android:enabled="false" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -264,7 +238,7 @@
         android:alpha="0.3"
         android:layout_marginBottom="8dp" />
 
-    <!-- Results Header -->
+    <!-- Results Header (مع أسهم بدلاً من Spinner) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -282,13 +256,25 @@
             android:textStyle="bold"
             android:textSize="13sp" />
 
-        <Spinner
-            android:id="@+id/spinnerSort"
-            android:layout_width="110dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="8dp"
+        <ImageButton
+            android:id="@+id/btnSortAsc"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/arrow_up_float"
             android:background="@color/bg_card"
-            android:padding="4dp" />
+            android:tint="@color/accent"
+            android:padding="10dp"
+            android:layout_marginEnd="4dp" />
+
+        <ImageButton
+            android:id="@+id/btnSortDesc"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/arrow_down_float"
+            android:background="@color/bg_card"
+            android:tint="@color/accent"
+            android:padding="10dp"
+            android:layout_marginEnd="8dp" />
 
         <ImageButton
             android:id="@+id/btnExport"
@@ -298,7 +284,7 @@
             android:background="@color/bg_card"
             android:tint="@color/text_primary"
             android:padding="6dp"
-            android:layout_marginStart="4dp" />
+            android:layout_marginEnd="4dp" />
 
         <ImageButton
             android:id="@+id/btnCopyAll"
@@ -307,8 +293,7 @@
             android:src="@android:drawable/ic_menu_share"
             android:background="@color/bg_card"
             android:tint="@color/text_primary"
-            android:padding="6dp"
-            android:layout_marginStart="4dp" />
+            android:padding="6dp" />
     </LinearLayout>
 
     <!-- Results List -->
