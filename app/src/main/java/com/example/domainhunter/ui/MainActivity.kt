@@ -16,6 +16,7 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -25,6 +26,7 @@ import com.example.domainhunter.databinding.ActivityMainBinding
 import com.example.domainhunter.service.DomainScanService
 import com.example.domainhunter.utils.DomainParser
 import com.example.domainhunter.utils.ExportHelper
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
@@ -38,6 +40,9 @@ class MainActivity : AppCompatActivity() {
     private var totalDomainsInFile = 0
     private var uiUpdateJob: Job? = null
     private val prefs by lazy { getSharedPreferences("settings", Context.MODE_PRIVATE) }
+
+    private var timeoutValue = 5000L
+    private var delayValue = 500L
 
     private val notifPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -69,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getFileName(uri: android.net.Uri): String? {
+    private fun getFileName(uri: Uri): String? {
         var name: String? = null
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -80,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         return name
     }
 
-    private fun getFileSize(uri: android.net.Uri): String {
+    private fun getFileSize(uri: Uri): String {
         var size = 0L
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -104,6 +109,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        timeoutValue = prefs.getString("timeout", "5000")?.toLongOrNull() ?: 5000L
+        delayValue = prefs.getString("delay", "500")?.toLongOrNull() ?: 500L
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -111,15 +119,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.etTimeout.setText(prefs.getString("timeout", "5000"))
-        binding.etDelay.setText(prefs.getString("delay", "500"))
+        binding.btnSettings.setOnClickListener {
+            showSettingsDialog()
+        }
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
         viewModel.domains.observe(this) { list -> adapter.submitList(list) }
 
-        // Sort Spinner
         val sortOptions = listOf("Default", "Expiry: Soonest", "Expiry: Latest")
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, sortOptions)
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -152,10 +160,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please select a file first!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            prefs.edit()
-                .putString("timeout", binding.etTimeout.text.toString())
-                .putString("delay", binding.etDelay.text.toString())
-                .apply()
             if (DomainScanService.isPaused) {
                 startService(Intent(this, DomainScanService::class.java).apply {
                     action = DomainScanService.ACTION_PAUSE
@@ -270,10 +274,8 @@ class MainActivity : AppCompatActivity() {
     private fun startScan() {
         val intent = Intent(this, DomainScanService::class.java).apply {
             putExtra(DomainScanService.EXTRA_FILE_PATH, filePath)
-            putExtra(DomainScanService.EXTRA_TIMEOUT,
-                binding.etTimeout.text.toString().toLongOrNull() ?: 5000L)
-            putExtra(DomainScanService.EXTRA_DELAY,
-                binding.etDelay.text.toString().toLongOrNull() ?: 500L)
+            putExtra(DomainScanService.EXTRA_TIMEOUT, timeoutValue)
+            putExtra(DomainScanService.EXTRA_DELAY, delayValue)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -327,6 +329,29 @@ class MainActivity : AppCompatActivity() {
                 delay(500)
             }
         }
+    }
+
+    private fun showSettingsDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_settings, null)
+        val etTimeoutDialog = dialogView.findViewById<TextInputEditText>(R.id.etTimeoutDialog)
+        val etDelayDialog = dialogView.findViewById<TextInputEditText>(R.id.etDelayDialog)
+        
+        etTimeoutDialog.setText(timeoutValue.toString())
+        etDelayDialog.setText(delayValue.toString())
+        
+        AlertDialog.Builder(this)
+            .setTitle("⚙️ Scan Settings")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                timeoutValue = etTimeoutDialog.text.toString().toLongOrNull() ?: 5000L
+                delayValue = etDelayDialog.text.toString().toLongOrNull() ?: 500L
+                prefs.edit()
+                    .putString("timeout", timeoutValue.toString())
+                    .putString("delay", delayValue.toString())
+                    .apply()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onDestroy() {
