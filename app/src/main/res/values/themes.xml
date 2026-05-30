@@ -1,17 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Dynamic attributes -->
-        <item name="bgPrimary">@color/bg_primary_light</item>
-        <item name="bgSecondary">@color/bg_secondary_light</item>
-        <item name="textPrimary">@color/text_primary_light</item>
-        <item name="textSecondary">@color/text_secondary_light</item>
-        
-        <!-- Material theme -->
-        <item name="colorPrimary">@color/apple_blue</item>
-        <item name="colorPrimaryVariant">@color/apple_blue</item>
-        <item name="colorOnPrimary">@color/bg_primary_light</item>
-        <item name="android:windowBackground">@color/bg_primary_light</item>
-        <item name="android:statusBarColor">@color/bg_secondary_light</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/bg_card</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:windowBackground">@color/bg_primary</item>
+        <item name="android:statusBarColor">@color/bg_secondary</item>
     </style>
 </resources>
