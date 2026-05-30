@@ -6,6 +6,5 @@
         <item name="colorOnPrimary">@color/black</item>
         <item name="android:windowBackground">@color/bg_primary</item>
         <item name="android:statusBarColor">@color/bg_secondary</item>
-        <item name="android:fontFamily">@font/space_mono</item>
     </style>
 </resources>
