@@ -11,12 +11,11 @@ import com.example.domainhunter.data.model.DomainStatus
 import com.example.domainhunter.data.model.ScanSession
 import com.example.domainhunter.data.model.SessionStatus
 import com.example.domainhunter.ui.MainActivity
-import com.example.domainhunter.utils.RdapFetcher
 import com.example.domainhunter.utils.DomainParser
+import com.example.domainhunter.utils.RdapFetcher
 import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.FileReader
-import java.util.concurrent.TimeUnit
 
 class DomainScanService : Service() {
 
@@ -54,10 +53,7 @@ class DomainScanService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_STOP -> {
-                stopScan()
-                return START_NOT_STICKY
-            }
+            ACTION_STOP -> { stopScan(); return START_NOT_STICKY }
             ACTION_PAUSE -> {
                 isPaused = !isPaused
                 if (isPaused) delayJob?.cancel()
@@ -89,10 +85,8 @@ class DomainScanService : Service() {
             BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
-                    val trimmed = line!!.trim().lowercase()
-                    if (trimmed.endsWith(".com")) {
-                        domains.add(trimmed.removeSuffix(".com"))
-                    }
+                    val domain = DomainParser.extractDomain(line!!)
+                    if (domain != null) domains.add(domain.removeSuffix(".com"))
                 }
             }
 
@@ -105,7 +99,6 @@ class DomainScanService : Service() {
 
             for (i in domains.indices) {
                 if (!isRunning) break
-
                 while (isPaused && isRunning) { delay(50) }
                 if (!isRunning) break
 
@@ -113,11 +106,7 @@ class DomainScanService : Service() {
                 progress = i + 1
 
                 try {
-                    // طلب RDAP واحد فقط — فحص + تاريخ في نفس الوقت
-                    val rdap = withContext(Dispatchers.IO) {
-                        RdapFetcher.check(netDomain)
-                    }
-
+                    val rdap = withContext(Dispatchers.IO) { RdapFetcher.check(netDomain) }
                     when {
                         rdap.isRegistered -> {
                             val expiring = rdap.expirationDate?.let { isExpiringSoon(it) } ?: false
@@ -135,7 +124,6 @@ class DomainScanService : Service() {
                         }
                         else -> ignored++
                     }
-
                 } catch (e: Exception) {
                     when {
                         !isRunning -> break
@@ -223,9 +211,9 @@ class DomainScanService : Service() {
 
     private fun formatTime(seconds: Int): String {
         return when {
-            seconds < 60 -> "$seconds ث"
-            seconds < 3600 -> "${seconds / 60} د"
-            else -> "${seconds / 3600} س ${(seconds % 3600) / 60} د"
+            seconds < 60 -> "${seconds}s"
+            seconds < 3600 -> "${seconds / 60}m"
+            else -> "${seconds / 3600}h ${(seconds % 3600) / 60}m"
         }
     }
 
@@ -246,24 +234,24 @@ class DomainScanService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val percent = if (total > 0) (progress * 100 / total) else 0
-        val statusText = if (isPaused) "متوقف" else "جاري الفحص"
-        val pauseLabel = if (isPaused) "استئناف" else "توقف"
+        val statusText = if (isPaused) "Paused" else "Scanning"
+        val pauseLabel = if (isPaused) "Resume" else "Pause"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Domain Hunter - $statusText")
             .setContentText("$progress / $total ($percent%)")
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
-                    "محجوزة: $registered  |  فاشلة: $failed  |  متجاهلة: $ignored\n" +
+                    "Registered: $registered  |  Failed: $failed  |  Ignored: $ignored\n" +
                     "$progress / $total ($percent%)\n" +
-                    "متبقي: $estimatedTimeLeft"
+                    "ETA: $estimatedTimeLeft"
                 )
             )
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setProgress(total, progress, false)
             .setContentIntent(openIntent)
             .addAction(android.R.drawable.ic_media_pause, pauseLabel, pauseIntent)
-            .addAction(android.R.drawable.ic_delete, "انهاء", stopIntent)
+            .addAction(android.R.drawable.ic_delete, "Stop", stopIntent)
             .setOngoing(true)
             .setSilent(true)
             .build()
@@ -281,8 +269,8 @@ class DomainScanService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("اكتمل الفحص!")
-            .setContentText("$registered نطاق محجوز من اصل $total")
+            .setContentTitle("Scan Complete!")
+            .setContentText("$registered registered domains found out of $total")
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setContentIntent(openIntent)
             .setAutoCancel(true)
@@ -294,7 +282,7 @@ class DomainScanService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID, "Domain Scan", NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "فحص النطاقات في الخلفية"
+            description = "Domain scanning in background"
             setShowBadge(true)
         }
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
