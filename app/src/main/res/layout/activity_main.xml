@@ -41,7 +41,7 @@
         android:alpha="0.3"
         android:layout_marginBottom="12dp" />
 
-    <!-- قسم 1: Import Card -->
+    <!-- Import Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardImport"
         android:layout_width="match_parent"
@@ -99,7 +99,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- قسم 2: Progress Card -->
+    <!-- Progress Card -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -158,8 +158,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingTop="4dp">
+                android:orientation="horizontal">
                 <TextView
                     android:id="@+id/tvRegistered"
                     android:layout_width="0dp"
@@ -190,7 +189,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- قسم 3: Control Buttons Card -->
+    <!-- Control Buttons Card -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -257,7 +256,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- خط فاصل قبل النتائج -->
+    <!-- خط فاصل -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -265,7 +264,7 @@
         android:alpha="0.3"
         android:layout_marginBottom="8dp" />
 
-    <!-- قسم 4: Results Header -->
+    <!-- Results Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -288,7 +287,7 @@
             android:layout_width="110dp"
             android:layout_height="36dp"
             android:layout_marginStart="8dp"
-            android:background="@drawable/spinner_background"
+            android:background="@color/bg_card"
             android:padding="4dp" />
 
         <ImageButton
@@ -296,7 +295,7 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:src="@android:drawable/ic_menu_save"
-            android:background="@drawable/circle_background"
+            android:background="@color/bg_card"
             android:tint="@color/text_primary"
             android:padding="6dp"
             android:layout_marginStart="4dp" />
@@ -306,13 +305,13 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:src="@android:drawable/ic_menu_share"
-            android:background="@drawable/circle_background"
+            android:background="@color/bg_card"
             android:tint="@color/text_primary"
             android:padding="6dp"
             android:layout_marginStart="4dp" />
     </LinearLayout>
 
-    <!-- قسم 5: Results List -->
+    <!-- Results List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
