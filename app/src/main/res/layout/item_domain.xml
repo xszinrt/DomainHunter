@@ -4,15 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     app:cardBackgroundColor="@color/bg_secondary"
-    app:cardCornerRadius="0dp"
+    app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
-    android:layout_marginBottom="2dp">
+    android:layout_marginBottom="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="8dp">
+        android:padding="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -24,18 +24,17 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="@color/neon_green"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                 />
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvExpiringSoon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⚠️"
-                android:textColor="@color/neon_yellow"
-                android:textSize="12sp"
+                android:text="Expiring"
+                android:textColor="@color/apple_orange"
+                android:textSize="11sp"
                 android:visibility="gone" />
         </LinearLayout>
 
@@ -43,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingTop="4dp">
+            android:paddingTop="6dp">
 
             <TextView
                 android:id="@+id/tvRegDate"
@@ -51,8 +50,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
-                 />
+                android:textSize="11sp" />
 
             <TextView
                 android:id="@+id/tvExpDate"
@@ -60,59 +58,57 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
-                 />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/tvFailed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="❌"
-            android:textColor="@color/neon_red"
+            android:text="Check Failed"
+            android:textColor="@color/apple_red"
             android:textSize="11sp"
             android:visibility="gone"
-            android:paddingTop="2dp"
-             />
+            android:paddingTop="4dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingTop="6dp"
+            android:paddingTop="10dp"
             android:gravity="center">
 
-            <ImageButton
+            <Button
                 android:id="@+id/btnOpen"
                 android:layout_width="0dp"
                 android:layout_height="32dp"
                 android:layout_weight="1"
-                android:src="@android:drawable/ic_menu_view"
-                android:background="@drawable/neon_circle_small"
-                android:tint="@color/neon_green"
-                android:padding="6dp"
+                android:text="Open"
+                android:textSize="11sp"
+                android:backgroundTint="@color/bg_tertiary_light"
+                android:textColor="@color/apple_blue"
                 android:layout_marginEnd="4dp" />
 
-            <ImageButton
+            <Button
                 android:id="@+id/btnCopy"
                 android:layout_width="0dp"
                 android:layout_height="32dp"
                 android:layout_weight="1"
-                android:src="@android:drawable/ic_menu_save"
-                android:background="@drawable/neon_circle_small"
-                android:tint="@color/neon_blue"
-                android:padding="6dp"
+                android:text="Copy"
+                android:textSize="11sp"
+                android:backgroundTint="@color/bg_tertiary_light"
+                android:textColor="@color/apple_blue"
                 android:layout_marginEnd="4dp" />
 
-            <ImageButton
+            <Button
                 android:id="@+id/btnGoogle"
                 android:layout_width="0dp"
                 android:layout_height="32dp"
                 android:layout_weight="1"
-                android:src="@android:drawable/ic_menu_search"
-                android:background="@drawable/neon_circle_small"
-                android:tint="@color/neon_yellow"
-                android:padding="6dp" />
+                android:text="Google"
+                android:textSize="11sp"
+                android:backgroundTint="@color/bg_tertiary_light"
+                android:textColor="@color/apple_blue" />
         </LinearLayout>
 
     </LinearLayout>

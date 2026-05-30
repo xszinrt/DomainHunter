@@ -378,3 +378,8 @@ class MainActivity : AppCompatActivity() {
         uiUpdateJob?.cancel()
     }
 }
+
+// إضافة دالة لتطبيق الثيم تلقائياً حسب إعدادات النظام
+private fun applyAppleTheme() {
+    // يطبق تلقائياً عبر DayNight theme
+}

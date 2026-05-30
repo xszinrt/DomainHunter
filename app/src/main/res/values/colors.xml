@@ -1,28 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- خلفيات -->
-    <color name="bg_primary">#0A0A0F</color>
-    <color name="bg_secondary">#111122</color>
-    <color name="bg_card">#0D0D1A</color>
+    <!-- Apple System Colors -->
+    <color name="apple_red">#FF3B30</color>
+    <color name="apple_orange">#FF9500</color>
+    <color name="apple_green">#34C759</color>
+    <color name="apple_blue">#007AFF</color>
+    <color name="apple_purple">#AF52DE</color>
     
-    <!-- ألوان نيونية -->
-    <color name="neon_green">#00FFCC</color>
-    <color name="neon_blue">#4488FF</color>
-    <color name="neon_red">#FF3366</color>
-    <color name="neon_yellow">#FFCC00</color>
-    <color name="neon_purple">#AA00FF</color>
+    <!-- Light Mode -->
+    <color name="bg_primary_light">#FFFFFF</color>
+    <color name="bg_secondary_light">#F2F2F7</color>
+    <color name="bg_tertiary_light">#E5E5EA</color>
+    <color name="text_primary_light">#000000</color>
+    <color name="text_secondary_light">#3A3A3C</color>
+    <color name="text_tertiary_light">#6C6C70</color>
     
-    <!-- نصوص -->
-    <color name="text_primary">#00FFCC</color>
-    <color name="text_secondary">#4488FF</color>
-    <color name="text_dim">#6688AA</color>
+    <!-- Dark Mode -->
+    <color name="bg_primary_dark">#000000</color>
+    <color name="bg_secondary_dark">#1C1C1E</color>
+    <color name="bg_tertiary_dark">#2C2C2E</color>
+    <color name="text_primary_dark">#FFFFFF</color>
+    <color name="text_secondary_dark">#8E8E93</color>
+    <color name="text_tertiary_dark">#6C6C70</color>
     
-    <!-- حالات -->
-    <color name="success">#00FFCC</color>
-    <color name="warning">#FFCC00</color>
-    <color name="error">#FF3366</color>
+    <!-- Dynamic (follows system) -->
+    <color name="bg_primary">?attr/bgPrimary</color>
+    <color name="bg_secondary">?attr/bgSecondary</color>
+    <color name="text_primary">?attr/textPrimary</color>
+    <color name="text_secondary">?attr/textSecondary</color>
     
-    <!-- أبيض/أسود -->
-    <color name="white">#E0E0E0</color>
-    <color name="black">#000000</color>
+    <!-- Status colors -->
+    <color name="success">@color/apple_green</color>
+    <color name="warning">@color/apple_orange</color>
+    <color name="error">@color/apple_red</color>
 </resources>
