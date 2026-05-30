@@ -177,32 +177,9 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
-        binding.btnStop.setOnClickListener { stopScan() }
-
-        binding.btnClear.setOnClickListener {
-            CoroutineScope(Dispatchers.IO).launch {
-                if (DomainScanService.currentSessionId != -1L) {
-                    AppDatabase.getInstance(this@MainActivity)
-                        .domainDao()
-                        .deleteBySession(DomainScanService.currentSessionId)
-                }
-                withContext(Dispatchers.Main) {
-                    filePath = null
-                    totalDomainsInFile = 0
-                    DomainScanService.currentSessionId = -1L
-                    binding.tvFileName.text = "No file selected"
-                    binding.tvProgress.text = "0 / 0"
-                    binding.progressBar.progress = 0
-                    binding.tvRegistered.text = "✅ 0"
-                    binding.tvFailed.text = "❌ 0"
-                    binding.tvIgnored.text = "⏭ 0"
-                    binding.tvEta.text = "--"
-                    binding.tvResultCount.text = "🔍 0 registered"
-                    binding.importProgressBar.isVisible = false
-                    binding.tvImportStatus.isVisible = false
-                    adapter.submitList(emptyList())
-                }
-            }
+        // ✅ Stop: يوقف الفحص ويمسح النتائج ويعيد قسم الاستيراد
+        binding.btnStop.setOnClickListener {
+            stopScanAndClearResults()
         }
 
         binding.btnExport.setOnClickListener {
@@ -286,16 +263,60 @@ class MainActivity : AppCompatActivity() {
         binding.btnStart.isEnabled = false
         binding.btnPause.isEnabled = true
         binding.btnStop.isEnabled = true
+        
+        // ✅ إخفاء قسم الاستيراد أثناء الفحص
+        binding.cardImport.visibility = View.GONE
     }
 
-    private fun stopScan() {
+    // ✅ وظيفة جديدة: إيقاف الفحص ومسح جميع النتائج
+    private fun stopScanAndClearResults() {
+        // إيقاف الخدمة
         startService(Intent(this, DomainScanService::class.java).apply {
             action = DomainScanService.ACTION_STOP
         })
-        binding.btnStart.isEnabled = true
-        binding.btnPause.isEnabled = false
-        binding.btnStop.isEnabled = false
-        binding.btnPause.text = "⏸"
+        
+        // مسح قاعدة البيانات
+        CoroutineScope(Dispatchers.IO).launch {
+            if (DomainScanService.currentSessionId != -1L) {
+                AppDatabase.getInstance(this@MainActivity)
+                    .domainDao()
+                    .deleteBySession(DomainScanService.currentSessionId)
+            }
+            withContext(Dispatchers.Main) {
+                // إعادة تعيين جميع المتغيرات
+                filePath = null
+                totalDomainsInFile = 0
+                DomainScanService.currentSessionId = -1L
+                DomainScanService.progress = 0
+                DomainScanService.registered = 0
+                DomainScanService.failed = 0
+                DomainScanService.ignored = 0
+                DomainScanService.estimatedTimeLeft = "--"
+                
+                // إعادة تعيين الواجهة
+                binding.tvFileName.text = "No file selected"
+                binding.tvProgress.text = "0 / 0"
+                binding.progressBar.progress = 0
+                binding.tvRegistered.text = "✅ 0"
+                binding.tvFailed.text = "❌ 0"
+                binding.tvIgnored.text = "⏭ 0"
+                binding.tvEta.text = "--"
+                binding.tvResultCount.text = "🔍 0 registered"
+                binding.importProgressBar.isVisible = false
+                binding.tvImportStatus.isVisible = false
+                
+                // ✅ إعادة ظهور قسم الاستيراد
+                binding.cardImport.visibility = View.VISIBLE
+                
+                // إعادة تعيين الأزرار
+                binding.btnStart.isEnabled = true
+                binding.btnPause.isEnabled = false
+                binding.btnStop.isEnabled = false
+                binding.btnPause.text = "⏸"
+                
+                adapter.submitList(emptyList())
+            }
+        }
     }
 
     private fun startUiUpdate() {
