@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- الخلفيات -->
-    <color name="bg_primary">#F8F9FA</color>
+    <color name="bg_primary">#F5F5F5</color>
     <color name="bg_secondary">#FFFFFF</color>
     <color name="bg_card">#FFFFFF</color>
     
     <!-- الألوان الأساسية -->
-    <color name="accent">#6750A4</color>
-    <color name="accent_light">#EADDFF</color>
+    <color name="accent">#6200EE</color>
     
     <!-- النصوص -->
     <color name="text_primary">#1C1B1F</color>
     <color name="text_secondary">#49454F</color>
-    <color name="text_hint">#79747E</color>
     
     <!-- ألوان الحالات -->
     <color name="success">#006E10</color>
@@ -25,5 +23,21 @@
     <color name="button_start">#006E10</color>
     
     <!-- أيقونات -->
-    <color name="icon_tint">#6750A4</color>
+    <color name="icon_tint">#6200EE</color>
+    
+    <!-- ألوان قديمة للتوافق -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="bg_primary_light">#F5F5F5</color>
+    <color name="bg_secondary_light">#FFFFFF</color>
+    <color name="bg_primary_dark">#121212</color>
+    <color name="bg_secondary_dark">#1E1E1E</color>
+    <color name="text_primary_light">#1C1B1F</color>
+    <color name="text_secondary_light">#49454F</color>
+    <color name="text_primary_dark">#FFFFFF</color>
+    <color name="text_secondary_dark">#9E9E9E</color>
+    <color name="apple_blue">#6200EE</color>
+    <color name="apple_green">#006E10</color>
+    <color name="apple_red">#BA1A1A</color>
+    <color name="apple_orange">#B85C00</color>
 </resources>
