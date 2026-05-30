@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.domainhunter.data.db.AppDatabase
@@ -70,10 +71,18 @@ class DomainScanService : Service() {
         super.onCreate()
         db = AppDatabase.getInstance(this)
         createNotificationChannel()
-        registerReceiver(notificationReceiver, IntentFilter().apply {
+        
+        // ✅ الحل لـ Android 13+: تسجيل BroadcastReceiver مع RECEIVER_NOT_EXPORTED
+        val intentFilter = IntentFilter().apply {
             addAction(ACTION_STOP)
             addAction(ACTION_PAUSE)
-        })
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(notificationReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(notificationReceiver, intentFilter)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -116,7 +125,7 @@ class DomainScanService : Service() {
         scanJob = scope.launch {
             delay(100)
             updateNotification()
-            
+
             val domains = mutableListOf<String>()
             BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
@@ -269,20 +278,20 @@ class DomainScanService : Service() {
             Intent(this, DomainScanService::class.java).apply { action = ACTION_STOP },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        
+
         val pauseRequestCode = if (isPaused) REQUEST_CODE_RESUME else REQUEST_CODE_PAUSE
         val pauseIntent = PendingIntent.getBroadcast(
             this, pauseRequestCode,
             Intent(this, DomainScanService::class.java).apply { action = ACTION_PAUSE },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        
+
         val openIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        
+
         val percent = if (total > 0) (progress * 100 / total) else 0
         val statusText = if (isPaused) "Paused" else "Scanning"
         val pauseLabel = if (isPaused) "Resume" else "Pause"
