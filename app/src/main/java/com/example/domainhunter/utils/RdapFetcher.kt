@@ -7,7 +7,8 @@ import java.util.concurrent.TimeUnit
 
 data class RdapInfo(
     val registrationDate: String?,
-    val expirationDate: String?
+    val expirationDate: String?,
+    val isRegistered: Boolean
 )
 
 object RdapFetcher {
@@ -16,7 +17,7 @@ object RdapFetcher {
         .readTimeout(8000, TimeUnit.MILLISECONDS)
         .build()
 
-    fun fetch(domain: String): RdapInfo? {
+    fun check(domain: String): RdapInfo {
         return try {
             val request = Request.Builder()
                 .url("https://rdap.verisign.com/net/v1/domain/$domain")
@@ -26,28 +27,35 @@ object RdapFetcher {
                 .build()
 
             val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return null
+            val code = response.code
 
-            val body = response.body?.string() ?: return null
-            val json = JSONObject(body)
-            val events = json.optJSONArray("events")
-
-            var registration: String? = null
-            var expiration: String? = null
-
-            if (events != null) {
-                for (i in 0 until events.length()) {
-                    val event = events.getJSONObject(i)
-                    val action = event.optString("eventAction")
-                    val date = event.optString("eventDate")
-                    val shortDate = if (date.length >= 10) date.take(10) else null
-                    when (action) {
-                        "registration" -> registration = shortDate
-                        "expiration" -> expiration = shortDate
+            when (code) {
+                200 -> {
+                    val body = response.body?.string() ?: return RdapInfo(null, null, true)
+                    val json = JSONObject(body)
+                    val events = json.optJSONArray("events")
+                    var registration: String? = null
+                    var expiration: String? = null
+                    if (events != null) {
+                        for (i in 0 until events.length()) {
+                            val event = events.getJSONObject(i)
+                            val action = event.optString("eventAction")
+                            val date = event.optString("eventDate")
+                            val shortDate = if (date.length >= 10) date.take(10) else null
+                            when (action) {
+                                "registration" -> registration = shortDate
+                                "expiration" -> expiration = shortDate
+                            }
+                        }
                     }
+                    RdapInfo(registration, expiration, true)
                 }
+                404 -> RdapInfo(null, null, false)
+                403 -> RdapInfo(null, null, true)
+                else -> RdapInfo(null, null, false)
             }
-            RdapInfo(registration, expiration)
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            RdapInfo(null, null, false)
+        }
     }
 }

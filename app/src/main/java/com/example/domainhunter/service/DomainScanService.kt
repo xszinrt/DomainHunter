@@ -13,18 +13,9 @@ import com.example.domainhunter.data.model.SessionStatus
 import com.example.domainhunter.ui.MainActivity
 import com.example.domainhunter.utils.RdapFetcher
 import kotlinx.coroutines.*
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
 import java.io.BufferedReader
 import java.io.FileReader
-import java.io.IOException
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 class DomainScanService : Service() {
 
@@ -33,7 +24,6 @@ class DomainScanService : Service() {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var db: AppDatabase
     private var currentSession: ScanSession? = null
-    private var currentCall: Call? = null
 
     companion object {
         const val CHANNEL_ID = "domain_scan_channel"
@@ -69,10 +59,7 @@ class DomainScanService : Service() {
             }
             ACTION_PAUSE -> {
                 isPaused = !isPaused
-                if (isPaused) {
-                    currentCall?.cancel()
-                    delayJob?.cancel()
-                }
+                if (isPaused) delayJob?.cancel()
                 updateNotification()
                 return START_STICKY
             }
@@ -96,11 +83,6 @@ class DomainScanService : Service() {
     }
 
     private fun startScan(filePath: String, timeout: Long, delayMs: Long) {
-        val scanClient = OkHttpClient.Builder()
-            .connectTimeout(timeout, TimeUnit.MILLISECONDS)
-            .readTimeout(timeout, TimeUnit.MILLISECONDS)
-            .build()
-
         scanJob = scope.launch {
             val domains = mutableListOf<String>()
             BufferedReader(FileReader(filePath)).use { reader ->
@@ -130,40 +112,28 @@ class DomainScanService : Service() {
                 progress = i + 1
 
                 try {
-                    val request = Request.Builder()
-                        .url("http://$netDomain")
-                        .head()
-                        .build()
-
-                    val call = scanClient.newCall(request)
-                    currentCall = call
-
-                    val response = suspendCoroutine<Response> { cont ->
-                        call.enqueue(object : Callback {
-                            override fun onFailure(call: Call, e: IOException) {
-                                cont.resumeWithException(e)
-                            }
-                            override fun onResponse(call: Call, response: Response) {
-                                cont.resume(response)
-                            }
-                        })
+                    // طلب RDAP واحد فقط — فحص + تاريخ في نفس الوقت
+                    val rdap = withContext(Dispatchers.IO) {
+                        RdapFetcher.check(netDomain)
                     }
-                    response.close()
 
-                    val rdap = withContext(Dispatchers.IO) { RdapFetcher.fetch(netDomain) }
-                    val expiring = rdap?.expirationDate?.let { isExpiringSoon(it) } ?: false
-
-                    db.domainDao().insert(
-                        Domain(
-                            sessionId = currentSession!!.id,
-                            domainName = netDomain,
-                            registrationDate = rdap?.registrationDate,
-                            expirationDate = rdap?.expirationDate,
-                            isExpiringSoon = expiring,
-                            status = DomainStatus.REGISTERED
-                        )
-                    )
-                    registered++
+                    when {
+                        rdap.isRegistered -> {
+                            val expiring = rdap.expirationDate?.let { isExpiringSoon(it) } ?: false
+                            db.domainDao().insert(
+                                Domain(
+                                    sessionId = currentSession!!.id,
+                                    domainName = netDomain,
+                                    registrationDate = rdap.registrationDate,
+                                    expirationDate = rdap.expirationDate,
+                                    isExpiringSoon = expiring,
+                                    status = DomainStatus.REGISTERED
+                                )
+                            )
+                            registered++
+                        }
+                        else -> ignored++
+                    }
 
                 } catch (e: Exception) {
                     when {
@@ -171,9 +141,6 @@ class DomainScanService : Service() {
                         e.message?.contains("cancel", ignoreCase = true) == true -> {
                             if (!isRunning) break
                         }
-                        e is java.net.ConnectException -> ignored++
-                        e is java.net.UnknownHostException -> ignored++
-                        e is java.net.SocketTimeoutException -> ignored++
                         else -> {
                             db.domainDao().insert(
                                 Domain(
@@ -234,7 +201,6 @@ class DomainScanService : Service() {
     private fun stopScan() {
         isRunning = false
         isPaused = false
-        currentCall?.cancel()
         delayJob?.cancel()
         scanJob?.cancel()
         scope.launch {
@@ -339,7 +305,6 @@ class DomainScanService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
-        currentCall?.cancel()
         delayJob?.cancel()
         scanJob?.cancel()
         scope.cancel()
