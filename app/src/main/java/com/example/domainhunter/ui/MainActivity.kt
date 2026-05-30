@@ -13,9 +13,11 @@ import android.provider.OpenableColumns
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -25,6 +27,7 @@ import com.example.domainhunter.databinding.ActivityMainBinding
 import com.example.domainhunter.service.DomainScanService
 import com.example.domainhunter.utils.DomainParser
 import com.example.domainhunter.utils.ExportHelper
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
@@ -113,6 +116,11 @@ class MainActivity : AppCompatActivity() {
 
         binding.etTimeout.setText(prefs.getString("timeout", "5000"))
         binding.etDelay.setText(prefs.getString("delay", "500"))
+
+        // ✅ NEW: زر الإعدادات
+        binding.btnSettings.setOnClickListener {
+            showSettingsDialog()
+        }
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
@@ -327,6 +335,32 @@ class MainActivity : AppCompatActivity() {
                 delay(500)
             }
         }
+    }
+
+    // ✅ NEW: دالة إظهار مربع حوار الإعدادات
+    private fun showSettingsDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_settings, null)
+        val etTimeoutDialog = dialogView.findViewById<TextInputEditText>(R.id.etTimeoutDialog)
+        val etDelayDialog = dialogView.findViewById<TextInputEditText>(R.id.etDelayDialog)
+        
+        etTimeoutDialog.setText(binding.etTimeout.text.toString())
+        etDelayDialog.setText(binding.etDelay.text.toString())
+        
+        AlertDialog.Builder(this)
+            .setTitle("⚙️ Scan Settings")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val timeout = etTimeoutDialog.text.toString()
+                val delay = etDelayDialog.text.toString()
+                binding.etTimeout.setText(timeout)
+                binding.etDelay.setText(delay)
+                prefs.edit()
+                    .putString("timeout", timeout)
+                    .putString("delay", delay)
+                    .apply()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onDestroy() {
