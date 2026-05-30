@@ -1,8 +1,10 @@
 package com.example.domainhunter.service
 
 import android.app.*
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.domainhunter.data.db.AppDatabase
@@ -24,6 +26,8 @@ class DomainScanService : Service() {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var db: AppDatabase
     private var currentSession: ScanSession? = null
+    private var lastNotificationUpdate = 0L
+    private val NOTIFICATION_UPDATE_INTERVAL = 300L
 
     companion object {
         const val CHANNEL_ID = "domain_scan_channel"
@@ -33,6 +37,10 @@ class DomainScanService : Service() {
         const val EXTRA_TIMEOUT = "EXTRA_TIMEOUT"
         const val EXTRA_DELAY = "EXTRA_DELAY"
         const val EXTRA_FILE_PATH = "EXTRA_FILE_PATH"
+
+        private const val REQUEST_CODE_STOP = 100
+        private const val REQUEST_CODE_PAUSE = 101
+        private const val REQUEST_CODE_RESUME = 102
 
         var isRunning = false
         var isPaused = false
@@ -45,21 +53,50 @@ class DomainScanService : Service() {
         var currentSessionId = -1L
     }
 
+    private val notificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                ACTION_STOP -> stopScan()
+                ACTION_PAUSE -> {
+                    isPaused = !isPaused
+                    if (isPaused) {
+                        delayJob?.cancel()
+                    }
+                    updateNotification()
+                }
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         db = AppDatabase.getInstance(this)
         createNotificationChannel()
+        registerReceiver(notificationReceiver, IntentFilter().apply {
+            addAction(ACTION_STOP)
+            addAction(ACTION_PAUSE)
+        })
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_STOP -> { stopScan(); return START_NOT_STICKY }
+            ACTION_STOP -> {
+                stopScan()
+                return START_NOT_STICKY
+            }
             ACTION_PAUSE -> {
                 isPaused = !isPaused
-                if (isPaused) delayJob?.cancel()
+                if (isPaused) {
+                    delayJob?.cancel()
+                }
                 updateNotification()
                 return START_STICKY
             }
+        }
+
+        if (isRunning) {
+            updateNotification()
+            return START_STICKY
         }
 
         startForeground(NOTIFICATION_ID, buildNotification())
@@ -81,6 +118,9 @@ class DomainScanService : Service() {
 
     private fun startScan(filePath: String, timeout: Long, delayMs: Long) {
         scanJob = scope.launch {
+            delay(100)
+            updateNotification()
+            
             val domains = mutableListOf<String>()
             BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
@@ -163,7 +203,7 @@ class DomainScanService : Service() {
                     estimatedTimeLeft = formatTime(remaining)
                 }
 
-                updateNotification()
+                updateNotificationThrottled()
 
                 if (isRunning && !isPaused) {
                     delayJob = scope.launch { delay(delayMs) }
@@ -184,6 +224,16 @@ class DomainScanService : Service() {
             isRunning = false
             stopForeground(STOP_FOREGROUND_DETACH)
             stopSelf()
+        }
+    }
+
+    private fun updateNotificationThrottled() {
+        val now = System.currentTimeMillis()
+        if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL || progress >= total) {
+            lastNotificationUpdate = now
+            withContext(Dispatchers.Main) {
+                updateNotification()
+            }
         }
     }
 
@@ -218,21 +268,25 @@ class DomainScanService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val stopIntent = PendingIntent.getService(
-            this, 0,
+        val stopIntent = PendingIntent.getBroadcast(
+            this, REQUEST_CODE_STOP,
             Intent(this, DomainScanService::class.java).apply { action = ACTION_STOP },
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val pauseIntent = PendingIntent.getService(
-            this, 1,
+        
+        val pauseRequestCode = if (isPaused) REQUEST_CODE_RESUME else REQUEST_CODE_PAUSE
+        val pauseIntent = PendingIntent.getBroadcast(
+            this, pauseRequestCode,
             Intent(this, DomainScanService::class.java).apply { action = ACTION_PAUSE },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        
         val openIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        
         val percent = if (total > 0) (progress * 100 / total) else 0
         val statusText = if (isPaused) "Paused" else "Scanning"
         val pauseLabel = if (isPaused) "Resume" else "Pause"
@@ -254,19 +308,24 @@ class DomainScanService : Service() {
             .addAction(android.R.drawable.ic_delete, "Stop", stopIntent)
             .setOngoing(true)
             .setSilent(true)
+            .setOnlyAlertOnce(false)
             .build()
     }
 
     private fun updateNotification() {
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, buildNotification())
+        try {
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.notify(NOTIFICATION_ID, buildNotification())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun showCompletedNotification() {
         val openIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Scan Complete!")
@@ -293,6 +352,9 @@ class DomainScanService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        try {
+            unregisterReceiver(notificationReceiver)
+        } catch (e: Exception) { }
         isRunning = false
         delayJob?.cancel()
         scanJob?.cancel()
