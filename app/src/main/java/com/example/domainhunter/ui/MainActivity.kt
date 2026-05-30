@@ -13,6 +13,7 @@ import android.provider.OpenableColumns
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -332,19 +333,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSettingsDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_settings, null)
-        val etTimeoutDialog = dialogView.findViewById<TextInputEditText>(R.id.etTimeoutDialog)
-        val etDelayDialog = dialogView.findViewById<TextInputEditText>(R.id.etDelayDialog)
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+        container.setPadding(50, 30, 50, 30)
         
-        etTimeoutDialog.setText(timeoutValue.toString())
-        etDelayDialog.setText(delayValue.toString())
+        val timeoutInput = TextInputEditText(this)
+        timeoutInput.hint = "Timeout (ms)"
+        timeoutInput.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        timeoutInput.setText(timeoutValue.toString())
+        container.addView(timeoutInput)
+        
+        val delayInput = TextInputEditText(this)
+        delayInput.hint = "Delay (ms)"
+        delayInput.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        delayInput.setText(delayValue.toString())
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.topMargin = 40
+        delayInput.layoutParams = params
+        container.addView(delayInput)
         
         AlertDialog.Builder(this)
             .setTitle("⚙️ Scan Settings")
-            .setView(dialogView)
+            .setView(container)
             .setPositiveButton("Save") { _, _ ->
-                timeoutValue = etTimeoutDialog.text.toString().toLongOrNull() ?: 5000L
-                delayValue = etDelayDialog.text.toString().toLongOrNull() ?: 500L
+                timeoutValue = timeoutInput.text.toString().toLongOrNull() ?: 5000L
+                delayValue = delayInput.text.toString().toLongOrNull() ?: 500L
                 prefs.edit()
                     .putString("timeout", timeoutValue.toString())
                     .putString("delay", delayValue.toString())
