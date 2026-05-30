@@ -1,10 +1,8 @@
 package com.example.domainhunter.service
 
 import android.app.*
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -39,10 +37,6 @@ class DomainScanService : Service() {
         const val EXTRA_DELAY = "EXTRA_DELAY"
         const val EXTRA_FILE_PATH = "EXTRA_FILE_PATH"
 
-        private const val REQUEST_CODE_STOP = 100
-        private const val REQUEST_CODE_PAUSE = 101
-        private const val REQUEST_CODE_RESUME = 102
-
         var isRunning = false
         var isPaused = false
         var progress = 0
@@ -54,38 +48,14 @@ class DomainScanService : Service() {
         var currentSessionId = -1L
     }
 
-    private val notificationReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                ACTION_STOP -> stopScan()
-                ACTION_PAUSE -> {
-                    isPaused = !isPaused
-                    if (isPaused) delayJob?.cancel()
-                    updateNotification()
-                }
-            }
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         db = AppDatabase.getInstance(this)
         createNotificationChannel()
-        
-        // ✅ الحل لـ Android 13+: تسجيل BroadcastReceiver مع RECEIVER_NOT_EXPORTED
-        val intentFilter = IntentFilter().apply {
-            addAction(ACTION_STOP)
-            addAction(ACTION_PAUSE)
-        }
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(notificationReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(notificationReceiver, intentFilter)
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // معالجة الأوامر فوراً
         when (intent?.action) {
             ACTION_STOP -> {
                 stopScan()
@@ -93,7 +63,9 @@ class DomainScanService : Service() {
             }
             ACTION_PAUSE -> {
                 isPaused = !isPaused
-                if (isPaused) delayJob?.cancel()
+                if (isPaused) {
+                    delayJob?.cancel()
+                }
                 updateNotification()
                 return START_STICKY
             }
@@ -123,9 +95,11 @@ class DomainScanService : Service() {
 
     private fun startScan(filePath: String, timeout: Long, delayMs: Long) {
         scanJob = scope.launch {
-            delay(100)
-            updateNotification()
-
+            // ✅ بدء الفحص على Main Thread أولاً
+            withContext(Dispatchers.Main) {
+                updateNotification()
+            }
+            
             val domains = mutableListOf<String>()
             BufferedReader(FileReader(filePath)).use { reader ->
                 var line: String?
@@ -208,7 +182,10 @@ class DomainScanService : Service() {
                     estimatedTimeLeft = formatTime(remaining)
                 }
 
-                updateNotificationOnMain()
+                // ✅ تحديث الإشعار على Main Thread
+                withContext(Dispatchers.Main) {
+                    updateNotificationThrottled()
+                }
 
                 if (isRunning && !isPaused) {
                     delayJob = scope.launch { delay(delayMs) }
@@ -232,13 +209,12 @@ class DomainScanService : Service() {
         }
     }
 
-    private fun updateNotificationOnMain() {
+    private var lastUpdateTime = 0L
+    private fun updateNotificationThrottled() {
         val now = System.currentTimeMillis()
-        if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL || progress >= total) {
-            lastNotificationUpdate = now
-            CoroutineScope(Dispatchers.Main).launch {
-                updateNotification()
-            }
+        if (now - lastUpdateTime >= NOTIFICATION_UPDATE_INTERVAL || progress >= total) {
+            lastUpdateTime = now
+            updateNotification()
         }
     }
 
@@ -273,25 +249,25 @@ class DomainScanService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val stopIntent = PendingIntent.getBroadcast(
-            this, REQUEST_CODE_STOP,
+        // ✅ استخدام getService (يعمل على Android 13+ إذا كانت الخدمة في Foreground)
+        val stopIntent = PendingIntent.getService(
+            this, 1,
             Intent(this, DomainScanService::class.java).apply { action = ACTION_STOP },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        val pauseRequestCode = if (isPaused) REQUEST_CODE_RESUME else REQUEST_CODE_PAUSE
-        val pauseIntent = PendingIntent.getBroadcast(
-            this, pauseRequestCode,
+        
+        val pauseIntent = PendingIntent.getService(
+            this, 2,
             Intent(this, DomainScanService::class.java).apply { action = ACTION_PAUSE },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
+        
         val openIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
+        
         val percent = if (total > 0) (progress * 100 / total) else 0
         val statusText = if (isPaused) "Paused" else "Scanning"
         val pauseLabel = if (isPaused) "Resume" else "Pause"
@@ -357,9 +333,6 @@ class DomainScanService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            unregisterReceiver(notificationReceiver)
-        } catch (e: Exception) { }
         isRunning = false
         delayJob?.cancel()
         scanJob?.cancel()
