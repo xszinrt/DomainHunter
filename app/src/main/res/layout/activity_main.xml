@@ -25,8 +25,9 @@
             android:textSize="14sp"
             android:textColor="@color/neon_green"
             android:textStyle="bold"
+            android:fontFamily="monospace"
             android:letterSpacing="0.1"
-            android:fontFamily="@font/space_mono" />
+             />
 
         <ImageButton
             android:id="@+id/btnSettings"
@@ -58,7 +59,7 @@
                 android:text="┌─[ SYSTEM DATA ]─────────────────────────┐"
                 android:textColor="@color/neon_blue"
                 android:textSize="9sp"
-                android:fontFamily="@font/space_mono" />
+                 />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -75,7 +76,8 @@
                     android:textColor="@color/neon_green"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    android:fontFamily="@font/space_mono" />
+            android:fontFamily="monospace"
+                     />
 
                 <TextView
                     android:id="@+id/tvEta"
@@ -84,7 +86,7 @@
                     android:text="ETA: --"
                     android:textColor="@color/neon_yellow"
                     android:textSize="11sp"
-                    android:fontFamily="@font/space_mono" />
+                     />
             </LinearLayout>
 
             <!-- Progress Bar مع توهج -->
@@ -111,7 +113,7 @@
                     android:text="✅ 0"
                     android:textColor="@color/neon_green"
                     android:textSize="11sp"
-                    android:fontFamily="@font/space_mono" />
+                     />
 
                 <TextView
                     android:id="@+id/tvFailed"
@@ -122,7 +124,7 @@
                     android:textColor="@color/neon_red"
                     android:textSize="11sp"
                     android:gravity="center"
-                    android:fontFamily="@font/space_mono" />
+                     />
 
                 <TextView
                     android:id="@+id/tvIgnored"
@@ -133,7 +135,7 @@
                     android:textColor="@color/text_dim"
                     android:textSize="11sp"
                     android:gravity="end"
-                    android:fontFamily="@font/space_mono" />
+                     />
             </LinearLayout>
 
             <TextView
@@ -142,7 +144,7 @@
                 android:text="└────────────────────────────────────────┘"
                 android:textColor="@color/neon_blue"
                 android:textSize="9sp"
-                android:fontFamily="@font/space_mono"
+                
                 android:layout_marginTop="2dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -169,9 +171,10 @@
                 android:text="[ IMPORT DOMAINS FILE ]"
                 android:textSize="11sp"
                 android:textStyle="bold"
+            android:fontFamily="monospace"
                 android:backgroundTint="@color/bg_card"
                 android:textColor="@color/neon_green"
-                android:fontFamily="@font/space_mono" />
+                 />
 
             <TextView
                 android:id="@+id/tvFileName"
@@ -182,7 +185,7 @@
                 android:textSize="10sp"
                 android:gravity="center"
                 android:paddingTop="6dp"
-                android:fontFamily="@font/space_mono" />
+                 />
 
             <ProgressBar
                 android:id="@+id/importProgressBar"
@@ -202,7 +205,7 @@
                 android:textSize="9sp"
                 android:gravity="center"
                 android:visibility="gone"
-                android:fontFamily="@font/space_mono" />
+                 />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -271,8 +274,9 @@
             android:text="🔍 0 registered"
             android:textColor="@color/neon_green"
             android:textStyle="bold"
+            android:fontFamily="monospace"
             android:textSize="11sp"
-            android:fontFamily="@font/space_mono" />
+             />
 
         <ImageButton
             android:id="@+id/btnSortAsc"

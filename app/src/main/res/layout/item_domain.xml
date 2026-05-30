@@ -27,7 +27,7 @@
                 android:textColor="@color/neon_green"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                android:fontFamily="@font/space_mono" />
+                 />
 
             <TextView
                 android:id="@+id/tvExpiringSoon"
@@ -52,7 +52,7 @@
                 android:layout_weight="1"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp"
-                android:fontFamily="@font/space_mono" />
+                 />
 
             <TextView
                 android:id="@+id/tvExpDate"
@@ -61,7 +61,7 @@
                 android:layout_weight="1"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp"
-                android:fontFamily="@font/space_mono" />
+                 />
         </LinearLayout>
 
         <TextView
@@ -73,7 +73,7 @@
             android:textSize="11sp"
             android:visibility="gone"
             android:paddingTop="2dp"
-            android:fontFamily="@font/space_mono" />
+             />
 
         <LinearLayout
             android:layout_width="match_parent"
