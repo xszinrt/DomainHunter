@@ -13,14 +13,14 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="12dp">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="🔍 Domain Hunter"
-            android:textSize="22sp"
+            android:textSize="24sp"
             android:textColor="@color/accent"
             android:textStyle="bold" />
 
@@ -33,105 +33,127 @@
             android:tint="@color/text_secondary" />
     </LinearLayout>
 
-    <!-- Import Card -->
+    <!-- خط فاصل -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/text_secondary"
+        android:alpha="0.3"
+        android:layout_marginBottom="12dp" />
+
+    <!-- قسم 1: Import Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardImport"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardBackgroundColor="@color/bg_secondary"
-        app:cardCornerRadius="10dp"
-        android:layout_marginBottom="8dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp"
-            android:gravity="center_vertical">
-
-            <Button
-                android:id="@+id/btnImport"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="📂"
-                android:backgroundTint="@color/bg_card"
-                android:textSize="18sp" />
-
-            <TextView
-                android:id="@+id/tvFileName"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="No file"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:paddingStart="8dp"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <ProgressBar
-                android:id="@+id/importProgressBar"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="60dp"
-                android:layout_height="4dp"
-                android:progressTint="@color/success"
-                android:max="100"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/tvImportStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/success"
-                android:textSize="10sp"
-                android:visibility="gone" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Progress Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/bg_secondary"
-        app:cardCornerRadius="10dp"
-        android:layout_marginBottom="8dp">
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        android:layout_marginBottom="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:padding="16dp">
+
+            <Button
+                android:id="@+id/btnImport"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="📂 Import Domains File"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/accent"
+                android:textColor="@color/white" />
+
+            <TextView
+                android:id="@+id/tvFileName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No file selected"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:paddingTop="10dp" />
+
+            <ProgressBar
+                android:id="@+id/importProgressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:progressTint="@color/success"
+                android:max="100"
+                android:visibility="gone"
+                android:layout_marginTop="10dp" />
+
+            <TextView
+                android:id="@+id/tvImportStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/success"
+                android:textSize="11sp"
+                android:gravity="center"
+                android:paddingTop="6dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- قسم 2: Progress Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/bg_secondary"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📊 Scan Progress"
+                android:textColor="@color/accent"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
                 <TextView
                     android:id="@+id/tvProgress"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="0 / 0"
-                    android:textColor="@color/accent"
-                    android:textSize="12sp"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
                 <TextView
                     android:id="@+id/tvEta"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ETA: --"
+                    android:text="⏱️ --"
                     android:textColor="@color/text_secondary"
-                    android:textSize="10sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <ProgressBar
                 android:id="@+id/progressBar"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="6dp"
+                android:layout_height="8dp"
                 android:progressTint="@color/accent"
                 android:max="100"
-                android:layout_marginTop="2dp" />
+                android:layout_marginBottom="12dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -145,7 +167,7 @@
                     android:layout_weight="1"
                     android:text="✅ 0"
                     android:textColor="@color/success"
-                    android:textSize="10sp" />
+                    android:textSize="12sp" />
                 <TextView
                     android:id="@+id/tvFailed"
                     android:layout_width="0dp"
@@ -153,7 +175,7 @@
                     android:layout_weight="1"
                     android:text="❌ 0"
                     android:textColor="@color/error"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     android:gravity="center" />
                 <TextView
                     android:id="@+id/tvIgnored"
@@ -162,59 +184,93 @@
                     android:layout_weight="1"
                     android:text="⏭ 0"
                     android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     android:gravity="end" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Control Buttons - بدون زر Clear -->
+    <!-- قسم 3: Control Buttons Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/bg_secondary"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎮 Controls"
+                android:textColor="@color/accent"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnStop"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="⏹ Stop"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/error"
+                    android:layout_marginEnd="8dp"
+                    android:enabled="false" />
+
+                <Button
+                    android:id="@+id/btnPause"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="⏸ Pause"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/warning"
+                    android:layout_marginEnd="8dp"
+                    android:enabled="false" />
+
+                <Button
+                    android:id="@+id/btnStart"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="▶ Start"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/success"
+                    android:enabled="false" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- خط فاصل قبل النتائج -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/text_secondary"
+        android:alpha="0.3"
+        android:layout_marginBottom="8dp" />
+
+    <!-- قسم 4: Results Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="12dp"
-        android:gravity="center">
-
-        <Button
-            android:id="@+id/btnStop"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="⏹ Stop"
-            android:textSize="14sp"
-            android:backgroundTint="@color/error"
-            android:layout_marginEnd="8dp"
-            android:enabled="false" />
-
-        <Button
-            android:id="@+id/btnPause"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="⏸ Pause"
-            android:textSize="14sp"
-            android:backgroundTint="@color/warning"
-            android:layout_marginEnd="8dp"
-            android:enabled="false" />
-
-        <Button
-            android:id="@+id/btnStart"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="▶ Start"
-            android:textSize="14sp"
-            android:backgroundTint="@color/success"
-            android:enabled="false" />
-    </LinearLayout>
-
-    <!-- Results Header -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="6dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center_vertical">
 
         <TextView
@@ -225,34 +281,38 @@
             android:text="🔍 0 registered"
             android:textColor="@color/accent"
             android:textStyle="bold"
-            android:textSize="12sp" />
+            android:textSize="13sp" />
 
         <Spinner
             android:id="@+id/spinnerSort"
-            android:layout_width="100dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="4dp" />
+            android:layout_width="110dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/spinner_background"
+            android:padding="4dp" />
 
         <ImageButton
             android:id="@+id/btnExport"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:src="@android:drawable/ic_menu_save"
-            android:background="@android:color/transparent"
+            android:background="@drawable/circle_background"
             android:tint="@color/text_primary"
-            android:padding="6dp" />
+            android:padding="6dp"
+            android:layout_marginStart="4dp" />
 
         <ImageButton
             android:id="@+id/btnCopyAll"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:src="@android:drawable/ic_menu_share"
-            android:background="@android:color/transparent"
+            android:background="@drawable/circle_background"
             android:tint="@color/text_primary"
-            android:padding="6dp" />
+            android:padding="6dp"
+            android:layout_marginStart="4dp" />
     </LinearLayout>
 
-    <!-- Results List -->
+    <!-- قسم 5: Results List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
