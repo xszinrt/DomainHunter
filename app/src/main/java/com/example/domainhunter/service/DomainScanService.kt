@@ -58,7 +58,6 @@ class DomainScanService : Service() {
         requestBatteryOptimizationWhitelist()
     }
 
-    // ✅ طلب إضافة التطبيق إلى القائمة البيضاء (مثل ADM)
     private fun requestBatteryOptimizationWhitelist() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -111,9 +110,7 @@ class DomainScanService : Service() {
     private fun startScan(filePath: String, timeout: Long, delayMs: Long) {
         scanJob = scope.launch {
             delay(100)
-            withContext(Dispatchers.Main) {
-                updateNotification()
-            }
+            withContext(Dispatchers.Main) { updateNotification() }
             
             val domains = mutableListOf<String>()
             BufferedReader(FileReader(filePath)).use { reader ->
@@ -197,9 +194,7 @@ class DomainScanService : Service() {
                     estimatedTimeLeft = formatTime(remaining)
                 }
 
-                withContext(Dispatchers.Main) {
-                    updateNotificationThrottled()
-                }
+                withContext(Dispatchers.Main) { updateNotificationThrottled() }
 
                 if (isRunning && !isPaused) {
                     delayJob = scope.launch { delay(delayMs) }
@@ -290,10 +285,10 @@ class DomainScanService : Service() {
             .setContentText("$progress / $total ($percent%)")
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
-                    "Registered: $registered  |  Failed: $failed  |  Ignored: $ignored\n" +
+                    "✅ $registered  ❌ $failed  ⏭ $ignored\n" +
                     "$progress / $total ($percent%)\n" +
-                    "ETA: $estimatedTimeLeft\n\n" +
-                    "🔋 Protected from battery optimization"
+                    "⏱ $estimatedTimeLeft\n" +
+                    "🔋 Battery optimization disabled"
                 )
             )
             .setSmallIcon(android.R.drawable.ic_menu_search)
@@ -323,7 +318,7 @@ class DomainScanService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Scan Complete!")
+            .setContentTitle("✅ Scan Complete!")
             .setContentText("$registered registered domains found out of $total")
             .setSmallIcon(android.R.drawable.ic_menu_search)
             .setContentIntent(openIntent)
