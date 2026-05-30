@@ -7,145 +7,31 @@
     android:background="@color/bg_primary"
     android:padding="8dp">
 
-    <!-- Header Sci-Fi -->
+    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="@color/bg_secondary"
-        android:padding="8dp"
-        android:layout_marginBottom="4dp">
+        android:layout_marginBottom="8dp">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="█ DOMAIN HUNTER █"
-            android:textSize="14sp"
-            android:textColor="@color/neon_green"
-            android:textStyle="bold"
-            android:letterSpacing="0.1"
-            android:fontFamily="@font/space_mono" />
+            android:text="Domain Hunter"
+            android:textSize="20sp"
+            android:textColor="@color/accent"
+            android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btnSettings"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@android:drawable/ic_menu_edit"
-            android:background="@drawable/neon_circle"
-            android:tint="@color/neon_green" />
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="@color/text_secondary" />
     </LinearLayout>
-
-    <!-- Data Panel (Sci-Fi Dashboard) -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/bg_secondary"
-        app:cardCornerRadius="0dp"
-        app:cardElevation="0dp"
-        android:layout_marginBottom="4dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="┌─[ SYSTEM DATA ]─────────────────────────┐"
-                android:textColor="@color/neon_blue"
-                android:textSize="9sp"
-                android:fontFamily="@font/space_mono" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginVertical="4dp">
-
-                <TextView
-                    android:id="@+id/tvProgress"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="0 / 0"
-                    android:textColor="@color/neon_green"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:fontFamily="@font/space_mono" />
-
-                <TextView
-                    android:id="@+id/tvEta"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ETA: --"
-                    android:textColor="@color/neon_yellow"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/space_mono" />
-            </LinearLayout>
-
-            <!-- Progress Bar مع توهج -->
-            <ProgressBar
-                android:id="@+id/progressBar"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="6dp"
-                android:progressTint="@color/neon_green"
-                android:max="100"
-                android:layout_marginVertical="4dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingTop="4dp">
-
-                <TextView
-                    android:id="@+id/tvRegistered"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="✅ 0"
-                    android:textColor="@color/neon_green"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/space_mono" />
-
-                <TextView
-                    android:id="@+id/tvFailed"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="❌ 0"
-                    android:textColor="@color/neon_red"
-                    android:textSize="11sp"
-                    android:gravity="center"
-                    android:fontFamily="@font/space_mono" />
-
-                <TextView
-                    android:id="@+id/tvIgnored"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="⏭ 0"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:gravity="end"
-                    android:fontFamily="@font/space_mono" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="└────────────────────────────────────────┘"
-                android:textColor="@color/neon_blue"
-                android:textSize="9sp"
-                android:fontFamily="@font/space_mono"
-                android:layout_marginTop="2dp" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
 
     <!-- Import Card -->
     <com.google.android.material.card.MaterialCardView
@@ -153,25 +39,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardBackgroundColor="@color/bg_secondary"
-        app:cardCornerRadius="0dp"
-        android:layout_marginBottom="4dp">
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        android:layout_marginBottom="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:padding="12dp">
 
             <Button
                 android:id="@+id/btnImport"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
-                android:text="[ IMPORT DOMAINS FILE ]"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:backgroundTint="@color/bg_card"
-                android:textColor="@color/neon_green"
-                android:fontFamily="@font/space_mono" />
+                android:text="Import File"
+                android:textSize="13sp"
+                android:backgroundTint="@color/accent"
+                android:textColor="@color/white" />
 
             <TextView
                 android:id="@+id/tvFileName"
@@ -179,40 +64,120 @@
                 android:layout_height="wrap_content"
                 android:text="No file selected"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:gravity="center"
-                android:paddingTop="6dp"
-                android:fontFamily="@font/space_mono" />
+                android:paddingTop="8dp" />
 
             <ProgressBar
                 android:id="@+id/importProgressBar"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="4dp"
-                android:progressTint="@color/neon_green"
+                android:layout_height="3dp"
+                android:progressTint="@color/success"
                 android:max="100"
                 android:visibility="gone"
-                android:layout_marginTop="6dp" />
+                android:layout_marginTop="8dp" />
 
             <TextView
                 android:id="@+id/tvImportStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/neon_green"
-                android:textSize="9sp"
+                android:textColor="@color/success"
+                android:textSize="10sp"
                 android:gravity="center"
-                android:visibility="gone"
-                android:fontFamily="@font/space_mono" />
+                android:paddingTop="4dp"
+                android:visibility="gone" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Control Buttons (Neon Glow) -->
+    <!-- Progress Card -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardBackgroundColor="@color/bg_secondary"
-        app:cardCornerRadius="0dp"
-        android:layout_marginBottom="4dp">
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+                <TextView
+                    android:id="@+id/tvProgress"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="0 / 0"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/tvEta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ETA: --"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:progressTint="@color/accent"
+                android:max="100"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/tvRegistered"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="✅ 0"
+                    android:textColor="@color/success"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/tvFailed"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="❌ 0"
+                    android:textColor="@color/error"
+                    android:textSize="11sp"
+                    android:gravity="center" />
+                <TextView
+                    android:id="@+id/tvIgnored"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⏭ 0"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:gravity="end" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Control Buttons -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/bg_secondary"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        android:layout_marginBottom="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -224,33 +189,36 @@
             <Button
                 android:id="@+id/btnStop"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="44dp"
                 android:layout_weight="1"
-                android:text="⏹"
-                android:textSize="22sp"
-                android:backgroundTint="@color/neon_red"
+                android:text="Stop"
+                android:textSize="13sp"
+                android:backgroundTint="@color/button_stop"
+                android:textColor="@color/white"
                 android:layout_marginEnd="6dp"
                 android:enabled="false" />
 
             <Button
                 android:id="@+id/btnPause"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="44dp"
                 android:layout_weight="1"
-                android:text="⏸"
-                android:textSize="22sp"
-                android:backgroundTint="@color/neon_yellow"
+                android:text="Pause"
+                android:textSize="13sp"
+                android:backgroundTint="@color/button_pause"
+                android:textColor="@color/black"
                 android:layout_marginEnd="6dp"
                 android:enabled="false" />
 
             <Button
                 android:id="@+id/btnStart"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="44dp"
                 android:layout_weight="1"
-                android:text="▶"
-                android:textSize="22sp"
-                android:backgroundTint="@color/neon_green"
+                android:text="Start"
+                android:textSize="13sp"
+                android:backgroundTint="@color/button_start"
+                android:textColor="@color/white"
                 android:enabled="false" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -258,9 +226,9 @@
     <!-- Results Header -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="32dp"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="6dp"
         android:gravity="center_vertical">
 
         <TextView
@@ -268,49 +236,47 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="🔍 0 registered"
-            android:textColor="@color/neon_green"
-            android:textStyle="bold"
-            android:textSize="11sp"
-            android:fontFamily="@font/space_mono" />
+            android:text="0 registered"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
 
         <ImageButton
             android:id="@+id/btnSortAsc"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:src="@android:drawable/arrow_up_float"
-            android:background="@drawable/neon_circle_small"
-            android:tint="@color/neon_green"
-            android:padding="8dp"
-            android:layout_marginEnd="2dp" />
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="@color/accent"
+            android:padding="4dp" />
 
         <ImageButton
             android:id="@+id/btnSortDesc"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:src="@android:drawable/arrow_down_float"
-            android:background="@drawable/neon_circle_small"
-            android:tint="@color/neon_blue"
-            android:padding="8dp"
-            android:layout_marginEnd="4dp" />
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="@color/accent"
+            android:padding="4dp"
+            android:layout_marginStart="2dp" />
 
         <ImageButton
             android:id="@+id/btnExport"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:src="@android:drawable/ic_menu_save"
-            android:background="@drawable/neon_circle_small"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:tint="@color/text_secondary"
-            android:padding="6dp" />
+            android:padding="4dp"
+            android:layout_marginStart="4dp" />
 
         <ImageButton
             android:id="@+id/btnCopyAll"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:src="@android:drawable/ic_menu_share"
-            android:background="@drawable/neon_circle_small"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:tint="@color/text_secondary"
-            android:padding="6dp" />
+            android:padding="4dp" />
     </LinearLayout>
 
     <!-- Results List -->

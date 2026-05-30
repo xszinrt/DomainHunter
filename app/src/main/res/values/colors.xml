@@ -1,14 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_primary">#1A1A2E</color>
-    <color name="bg_secondary">#16213E</color>
-    <color name="bg_card">#0F3460</color>
-    <color name="accent">#E94560</color>
-    <color name="text_primary">#E0E0E0</color>
-    <color name="text_secondary">#9E9E9E</color>
-    <color name="success">#4CAF50</color>
-    <color name="warning">#FF9800</color>
-    <color name="error">#F44336</color>
+    <!-- الخلفيات -->
+    <color name="bg_primary">#F8F9FA</color>
+    <color name="bg_secondary">#FFFFFF</color>
+    <color name="bg_card">#FFFFFF</color>
+    
+    <!-- الألوان الأساسية -->
+    <color name="accent">#2196F3</color>
+    
+    <!-- النصوص -->
+    <color name="text_primary">#212529</color>
+    <color name="text_secondary">#6C757D</color>
+    
+    <!-- ألوان الحالات -->
+    <color name="success">#28A745</color>
+    <color name="warning">#FFC107</color>
+    <color name="error">#DC3545</color>
+    
+    <!-- ألوان الأزرار -->
+    <color name="button_stop">#DC3545</color>
+    <color name="button_pause">#FFC107</color>
+    <color name="button_start">#28A745</color>
+    
+    <!-- عام -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
 </resources>
