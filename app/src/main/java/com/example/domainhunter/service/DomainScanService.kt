@@ -16,8 +16,6 @@ import com.example.domainhunter.ui.MainActivity
 import com.example.domainhunter.utils.DomainParser
 import com.example.domainhunter.utils.RdapFetcher
 import kotlinx.coroutines.*
-import java.io.BufferedReader
-import java.io.FileReader
 
 class DomainScanService : Service() {
 
@@ -203,7 +201,8 @@ class DomainScanService : Service() {
                     estimatedTimeLeft = formatTime(remaining)
                 }
 
-                updateNotificationThrottled()
+                // ✅ FIX: استدعاء التحديث المباشر مع التأكد من Main Thread
+                updateNotificationOnMain()
 
                 if (isRunning && !isPaused) {
                     delayJob = scope.launch { delay(delayMs) }
@@ -227,11 +226,12 @@ class DomainScanService : Service() {
         }
     }
 
-    private fun updateNotificationThrottled() {
+    // ✅ FIX: دالة محدثة للتأكد من التحديث على Main Thread
+    private fun updateNotificationOnMain() {
         val now = System.currentTimeMillis()
         if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL || progress >= total) {
             lastNotificationUpdate = now
-            withContext(Dispatchers.Main) {
+            CoroutineScope(Dispatchers.Main).launch {
                 updateNotification()
             }
         }
