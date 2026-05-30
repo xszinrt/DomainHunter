@@ -3,8 +3,11 @@ package com.example.domainhunter.service
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import com.example.domainhunter.data.db.AppDatabase
 import com.example.domainhunter.data.model.Domain
@@ -52,10 +55,24 @@ class DomainScanService : Service() {
         super.onCreate()
         db = AppDatabase.getInstance(this)
         createNotificationChannel()
+        requestBatteryOptimizationWhitelist()
+    }
+
+    // ✅ طلب إضافة التطبيق إلى القائمة البيضاء (مثل ADM)
+    private fun requestBatteryOptimizationWhitelist() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(intent)
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // معالجة الأوامر فوراً
         when (intent?.action) {
             ACTION_STOP -> {
                 stopScan()
@@ -63,9 +80,7 @@ class DomainScanService : Service() {
             }
             ACTION_PAUSE -> {
                 isPaused = !isPaused
-                if (isPaused) {
-                    delayJob?.cancel()
-                }
+                if (isPaused) delayJob?.cancel()
                 updateNotification()
                 return START_STICKY
             }
@@ -95,7 +110,7 @@ class DomainScanService : Service() {
 
     private fun startScan(filePath: String, timeout: Long, delayMs: Long) {
         scanJob = scope.launch {
-            // ✅ بدء الفحص على Main Thread أولاً
+            delay(100)
             withContext(Dispatchers.Main) {
                 updateNotification()
             }
@@ -182,7 +197,6 @@ class DomainScanService : Service() {
                     estimatedTimeLeft = formatTime(remaining)
                 }
 
-                // ✅ تحديث الإشعار على Main Thread
                 withContext(Dispatchers.Main) {
                     updateNotificationThrottled()
                 }
@@ -249,7 +263,6 @@ class DomainScanService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        // ✅ استخدام getService (يعمل على Android 13+ إذا كانت الخدمة في Foreground)
         val stopIntent = PendingIntent.getService(
             this, 1,
             Intent(this, DomainScanService::class.java).apply { action = ACTION_STOP },
@@ -279,7 +292,8 @@ class DomainScanService : Service() {
                 NotificationCompat.BigTextStyle().bigText(
                     "Registered: $registered  |  Failed: $failed  |  Ignored: $ignored\n" +
                     "$progress / $total ($percent%)\n" +
-                    "ETA: $estimatedTimeLeft"
+                    "ETA: $estimatedTimeLeft\n\n" +
+                    "🔋 Protected from battery optimization"
                 )
             )
             .setSmallIcon(android.R.drawable.ic_menu_search)

@@ -9,6 +9,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENT"/>
+    
+    <!-- ✅ إذن استثناء البطارية (مثل ADM) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
         android:allowBackup="true"
@@ -41,4 +44,5 @@
         </provider>
 
     </application>
+
 </manifest>
